@@ -7,69 +7,63 @@
 
 ## ✅ Completed
 
-_Nothing completed yet — project is in initial setup._
+### Phase 1 — Project Scaffold & Auth
+
+- [x] **1.1** Initialise Expo project with TypeScript template (`npx create-expo-app`)
+- [x] **1.2** Configure Expo Router (file-based routing, root `_layout.tsx`)
+- [x] **1.3** Set up Supabase project (cloud) and run `supabase init` locally
+- [x] **1.4** Add `.env.local` with `SUPABASE_URL` and `SUPABASE_ANON_KEY`; configure `app.config.ts` to read them
+- [x] **1.5** Create `src/lib/supabaseClient.ts` singleton
+- [x] **1.6** Set up Zustand; create `src/store/authStore.ts` (session, user)
+- [x] **1.7** Build `(auth)/register.tsx` screen (email + password)
+- [x] **1.8** Build `(auth)/login.tsx` screen
+- [x] **1.9** Implement auth guard in `app/_layout.tsx` — redirect unauthenticated users to login
+- [x] **1.10** Create `useAuth.ts` hook wrapping authStore
+- [x] **1.11** Write Supabase migration `001_users.sql` (profiles table)
+- [x] **1.12** Add `profile.tsx` screen (display name, avatar upload)
+
+### Phase 2 — Room Management
+
+- [x] **2.1** Write Supabase migration `002_rooms.sql` (rooms + members tables, RLS policies)
+- [x] **2.2** Create `src/store/roomStore.ts`
+- [x] **2.3** Build `rooms/index.tsx` — list of rooms the current user belongs to
+- [x] **2.4** Build `rooms/new.tsx` modal — create a named room
+- [x] **2.5** Build `RoomCard.tsx` component
+- [x] **2.6** Implement invite by username (search users, add to room)
+- [x] **2.7** Implement shareable invite link (deep link into `rooms/[roomId]/canvas`)
+- [x] **2.8** Build `members.tsx` — view and remove room members
+- [x] **2.9** Build `InviteSheet.tsx` bottom sheet component
+- [x] **2.10** Add leave-room and delete-room actions
+
+### Phase 3 — Real-Time Canvas
+
+- [x] **3.1** Install and configure `@shopify/react-native-skia` library
+- [x] **3.2** Write Supabase migration `007_strokes.sql` (strokes table with roomId, userId, path data)
+- [x] **3.3** Create TypeScript interfaces in `src/types/canvas.ts` (Point, Stroke, CanvasState)
+- [x] **3.4** Create `src/store/canvasStore.ts` (strokes array, current tool, undo stack)
+- [x] **3.5** Build basic `Canvas.tsx` — render strokes from store using Skia `Path`
+- [x] **3.6** Implement touch input → stroke recording in `Canvas.tsx`
+- [x] **3.7** Create `src/lib/realtime.ts` — Supabase Realtime channel per room
+- [x] **3.8** Broadcast new stroke segments over the channel (delta, not full canvas)
+- [x] **3.9** Subscribe to remote strokes and apply to canvasStore
+- [x] **3.10** Fetch full stroke history on room join (hydrate canvasStore)
+- [x] **3.11** Build `StrokeToolbar.tsx` — color picker, quick sizes, eraser toggle
+- [x] **3.12** Implement undo (local + DB) and clear canvas (broadcast + DB)
+- [x] **3.13** Create `useCanvas.ts` hook
+- [x] **3.14** Add `AvatarStack.tsx` showing online members via Supabase Presence
+- [x] **3.15** Handle offline gracefully — queue strokes locally, save to DB in async background promises
+- [x] **3.16** Performance pass — touch moving coordinates distance-threshold (2px) filtering to reduce event payload sizes
 
 ---
 
 ## 🔄 In Progress
 
-### Phase 1 — Project Scaffold & Auth
-
-- [~] **1.1** Initialise Expo project with TypeScript template (`npx create-expo-app`)
-- [~] **1.2** Configure Expo Router (file-based routing, root `_layout.tsx`)
+_Nothing currently in progress._
 
 ---
 
 ## 📋 To Do
 
-### Phase 1 — Project Scaffold & Auth
-
-- [ ] **1.3** Set up Supabase project (cloud) and run `supabase init` locally
-- [ ] **1.4** Add `.env.local` with `SUPABASE_URL` and `SUPABASE_ANON_KEY`; configure `app.config.ts` to read them
-- [ ] **1.5** Create `src/lib/supabaseClient.ts` singleton
-- [ ] **1.6** Set up Zustand; create `src/store/authStore.ts` (session, user)
-- [ ] **1.7** Build `(auth)/register.tsx` screen (email + password)
-- [ ] **1.8** Build `(auth)/login.tsx` screen
-- [ ] **1.9** Implement auth guard in `app/_layout.tsx` — redirect unauthenticated users to login
-- [ ] **1.10** Create `useAuth.ts` hook wrapping authStore
-- [ ] **1.11** Write Supabase migration `001_users.sql` (profiles table)
-- [ ] **1.12** Add `profile.tsx` screen (display name, avatar upload)
-
----
-
-### Phase 2 — Room Management
-
-- [ ] **2.1** Write Supabase migration `002_rooms.sql` (rooms + members tables, RLS policies)
-- [ ] **2.2** Create `src/store/roomStore.ts`
-- [ ] **2.3** Build `rooms/index.tsx` — list of rooms the current user belongs to
-- [ ] **2.4** Build `rooms/new.tsx` modal — create a named room
-- [ ] **2.5** Build `RoomCard.tsx` component
-- [ ] **2.6** Implement invite by username (search users, add to room)
-- [ ] **2.7** Implement shareable invite link (deep link into `rooms/[roomId]/canvas`)
-- [ ] **2.8** Build `members.tsx` — view and remove room members
-- [ ] **2.9** Build `InviteSheet.tsx` bottom sheet component
-- [ ] **2.10** Add leave-room and delete-room actions
-
----
-
-### Phase 3 — Real-Time Canvas
-
-- [ ] **3.1** Install and configure `react-native-skia`
-- [ ] **3.2** Write Supabase migration `003_strokes.sql` (strokes table with roomId, userId, path data)
-- [ ] **3.3** Create TypeScript interfaces in `src/types/canvas.ts` (Point, Stroke, CanvasState)
-- [ ] **3.4** Create `src/store/canvasStore.ts` (strokes array, current tool, undo stack)
-- [ ] **3.5** Build basic `Canvas.tsx` — render strokes from store using Skia `Path`
-- [ ] **3.6** Implement touch input → stroke recording in `Canvas.tsx`
-- [ ] **3.7** Create `src/lib/realtime.ts` — Supabase Realtime channel per room
-- [ ] **3.8** Broadcast new stroke segments over the channel (delta, not full canvas)
-- [ ] **3.9** Subscribe to remote strokes and apply to canvasStore
-- [ ] **3.10** Fetch full stroke history on room join (hydrate canvasStore)
-- [ ] **3.11** Build `StrokeToolbar.tsx` — color picker, stroke width slider, eraser toggle
-- [ ] **3.12** Implement undo (local only) and clear canvas (broadcast to all)
-- [ ] **3.13** Create `useCanvas.ts` hook
-- [ ] **3.14** Add `AvatarStack.tsx` showing online members via Supabase Presence
-- [ ] **3.15** Handle offline gracefully — queue strokes locally, sync on reconnect
-- [ ] **3.16** Performance pass — stroke simplification (`src/utils/stroke.ts`) to reduce event volume
 
 ---
 
@@ -92,16 +86,19 @@ _Nothing completed yet — project is in initial setup._
 
 ### Phase 5 — Polish & Notifications
 
-- [ ] **5.1** Push notifications (Expo Notifications) — alert when a collaborator draws in your room
-- [ ] **5.2** Notification preferences (per-room mute)
-- [ ] **5.3** Canvas layers (add, reorder, hide)
-- [ ] **5.4** Image insert — pick from photo library, place on canvas
-- [ ] **5.5** Reaction stamps (emoji overlays with animation)
-- [ ] **5.6** Dark mode support across all screens
-- [ ] **5.7** Accessibility audit (VoiceOver / TalkBack on toolbar)
-- [ ] **5.8** Haptic feedback on stroke start/end
-- [ ] **5.9** Error boundary and fallback UI for canvas failures
-- [ ] **5.10** Loading skeletons for room list and canvas hydration
+- [x] **5.1** Real-time in-app notifications (Supabase Realtime + bell icon badge dropdown list)
+- [x] **5.2** Notification triggers for friend requests, canvas invites, room renaming, and canvas stroke additions (debounced)
+- [x] **5.3** Premium avatar presets selection grid (12 choices) in settings screen
+- [x] **5.4** Auto-default avatar creation on database triggers (public.handle_new_user)
+- [x] **5.5** Empty list pull-to-refresh fix for friends list and request logs using ListEmptyComponent
+- [ ] **5.6** Canvas layers (add, reorder, hide)
+- [ ] **5.7** Image insert — pick from photo library, place on canvas
+- [ ] **5.8** Reaction stamps (emoji overlays with animation)
+- [ ] **5.9** Dark mode support across all screens
+- [ ] **5.10** Accessibility audit (VoiceOver / TalkBack on toolbar)
+- [ ] **5.11** Haptic feedback on stroke start/end
+- [ ] **5.12** Error boundary and fallback UI for canvas failures
+- [ ] **5.13** Loading skeletons for room list and canvas hydration
 
 ---
 
