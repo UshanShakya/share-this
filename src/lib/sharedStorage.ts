@@ -57,6 +57,21 @@ export const sharedStorage = {
     });
   },
 
+  syncActiveRoomStrokes: async (roomId: string, strokes: any[]) => {
+    const formattedStrokes = strokes.map(s => ({
+      id: s.id,
+      room_id: s.roomId || s.room_id,
+      user_id: s.userId || s.user_id,
+      points: s.points,
+      color: s.color,
+      width: s.width,
+      text: s.text,
+    }));
+    await writeSharedJSON(`widget_strokes_${roomId}.json`, {
+      strokes: formattedStrokes,
+    });
+  },
+
   reloadWidget: () => {
     if (reloadTimeout) {
       clearTimeout(reloadTimeout);

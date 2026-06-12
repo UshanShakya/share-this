@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Text,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useRoom } from '@/hooks/useRoom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/use-theme';
@@ -23,7 +23,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Spacing } from '@/constants/theme';
 import { Room, RoomInvite } from '@/types/room';
 import { useNotificationStore } from '@/store/notificationStore';
+import { supabase } from '@/lib/supabaseClient';
 import { SwipeableNotificationItem } from '@/components/ui/SwipeableNotificationItem';
+
 
 export default function RoomsScreen() {
   const theme = useTheme();
@@ -48,13 +50,15 @@ export default function RoomsScreen() {
   // State for Options sheet
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
-  
+
   // State for Invite sheet
   const [showInviteSheet, setShowInviteSheet] = useState(false);
-
+  
   // State for Notifications sheet
   const [showNotifications, setShowNotifications] = useState(false);
   const [dismissingIds, setDismissingIds] = useState<string[]>([]);
+
+
 
   const currentUserId = session?.user?.id;
 
@@ -90,10 +94,57 @@ export default function RoomsScreen() {
 
   useEffect(() => {
     if (currentUserId) {
+      console.log('[RoomsScreen] Subscribing to notifications realtime for:', currentUserId);
       const unsubscribe = subscribeNotifications(currentUserId);
-      return () => unsubscribe();
+      return () => {
+        console.log('[RoomsScreen] Unsubscribing from notifications realtime for:', currentUserId);
+        unsubscribe();
+      };
     }
   }, [currentUserId, subscribeNotifications]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    // Subscribe to rooms and room_members realtime updates
+    console.log('[RoomsScreen] Subscribing to rooms and room_members realtime updates...');
+    const channel = supabase
+      .channel(`rooms_realtime_sync_${Math.random().toString(36).substring(2, 9)}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'room_members',
+        },
+        (payload) => {
+          console.log('[RoomsScreen] Realtime change detected on room_members table:', payload);
+          fetchRooms().catch(() => {});
+          fetchRoomInvites().catch(() => {});
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rooms',
+        },
+        (payload) => {
+          console.log('[RoomsScreen] Realtime change detected on rooms table:', payload);
+          fetchRooms().catch(() => {});
+          fetchRoomInvites().catch(() => {});
+        }
+      )
+      .subscribe((status) => {
+        console.log('[RoomsScreen] Realtime rooms subscription status:', status);
+      });
+
+    return () => {
+      console.log('[RoomsScreen] Unsubscribing from rooms and room_members realtime updates...');
+      channel.unsubscribe();
+    };
+  }, [currentUserId, fetchRooms, fetchRoomInvites]);
 
   const handleNotificationPress = async (notification: any) => {
     await markAsRead(notification.id);
@@ -607,6 +658,8 @@ export default function RoomsScreen() {
           )}
         </View>
       </SideDrawer>
+
+
     </SafeAreaView>
   );
 }

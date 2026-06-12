@@ -17,6 +17,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { InviteSheet } from '@/components/InviteSheet';
+import { supabase } from '@/lib/supabaseClient';
 import { Ionicons } from '@expo/vector-icons';
 import { Spacing } from '@/constants/theme';
 
@@ -45,7 +46,35 @@ export default function MembersScreen() {
 
   useEffect(() => {
     handleFetchMembers();
-  }, [handleFetchMembers]);
+
+    if (!roomId) return;
+
+    // Subscribe to room_members realtime updates for this room
+    console.log(`[MembersScreen] Subscribing to room_members changes for roomId: ${roomId}`);
+    const channel = supabase
+      .channel(`room_members_realtime_${roomId}_${Math.random().toString(36).substring(2, 9)}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'room_members',
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload) => {
+          console.log('[MembersScreen] Realtime change detected in room_members:', payload);
+          handleFetchMembers();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[MembersScreen] Realtime room_members subscription status:', status);
+      });
+
+    return () => {
+      console.log(`[MembersScreen] Unsubscribing from room_members changes for roomId: ${roomId}`);
+      channel.unsubscribe();
+    };
+  }, [roomId, handleFetchMembers]);
 
   const onRefresh = async () => {
     setRefreshing(true);

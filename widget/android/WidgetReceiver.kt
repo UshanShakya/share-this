@@ -83,8 +83,37 @@ class WidgetReceiver : AppWidgetProvider() {
             appWidgetId: Int
         ) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val roomId = prefs.getString(String.format(KEY_ROOM_ID, appWidgetId), null)
-            val roomName = prefs.getString(String.format(KEY_ROOM_NAME, appWidgetId), "Select Room")
+            var roomId = prefs.getString(String.format(KEY_ROOM_ID, appWidgetId), null)
+            var roomName = prefs.getString(String.format(KEY_ROOM_NAME, appWidgetId), "Select Room")
+
+            // Verify if the configured room still exists in the user's rooms list
+            val roomsFile = File(context.filesDir, "widget_rooms.json")
+            if (roomsFile.exists() && !roomId.isNullOrEmpty()) {
+                try {
+                    val roomsJson = JSONObject(roomsFile.readText())
+                    val roomsArr = roomsJson.getJSONArray("rooms")
+                    var roomExists = false
+                    for (i in 0 until roomsArr.length()) {
+                        val r = roomsArr.getJSONObject(i)
+                        if (r.getString("id") == roomId) {
+                            roomExists = true
+                            roomName = r.getString("name") // keep name synchronized
+                            break
+                        }
+                    }
+                    if (!roomExists) {
+                        prefs.edit().apply {
+                            remove(String.format(KEY_ROOM_ID, appWidgetId))
+                            remove(String.format(KEY_ROOM_NAME, appWidgetId))
+                            apply()
+                        }
+                        roomId = null
+                        roomName = "Select Room"
+                    }
+                } catch (e: Exception) {
+                    Log.e("WidgetReceiver", "Failed to verify room existence", e)
+                }
+            }
 
             val views = RemoteViews(context.packageName, R.layout.widget_layout)
 
@@ -168,6 +197,45 @@ class WidgetReceiver : AppWidgetProvider() {
 
         private fun fetchStrokes(context: Context, roomId: String): List<Stroke> {
             try {
+                // 1. Check if the app is active in this room
+                val activeFile = File(context.filesDir, "widget_active.json")
+                if (activeFile.exists()) {
+                    val activeJson = JSONObject(activeFile.readText())
+                    val activeRoomId = activeJson.optString("roomId", "")
+                    if (activeRoomId == roomId) {
+                        val strokesFile = File(context.filesDir, "widget_strokes_${roomId}.json")
+                        if (strokesFile.exists()) {
+                            Log.d("WidgetReceiver", "Reading strokes locally for active room $roomId")
+                            val strokesJson = JSONObject(strokesFile.readText())
+                            val arr = strokesJson.getJSONArray("strokes")
+                            val strokes = mutableListOf<Stroke>()
+                            for (i in 0 until arr.length()) {
+                                val obj = arr.getJSONObject(i)
+                                val id = obj.optString("id", "")
+                                val rId = obj.optString("room_id", "")
+                                val uId = obj.optString("user_id", "")
+                                val color = obj.optString("color", "")
+                                val width = obj.optDouble("width", 2.0)
+                                val text = if (obj.isNull("text")) null else obj.optString("text", null)
+
+                                val pointsList = mutableListOf<Point>()
+                                if (!obj.isNull("points")) {
+                                    val ptsArr = obj.getJSONArray("points")
+                                    for (j in 0 until ptsArr.length()) {
+                                        val ptObj = ptsArr.getJSONObject(j)
+                                        val x = ptObj.optDouble("x", 0.0)
+                                        val y = ptObj.optDouble("y", 0.0)
+                                        pointsList.add(Point(x, y))
+                                    }
+                                }
+                                strokes.add(Stroke(id, rId, uId, pointsList, color, width, text))
+                            }
+                            return strokes
+                        }
+                    }
+                }
+
+                // 2. Fallback to network fetch if not active or file not found
                 val authFile = File(context.filesDir, "widget_auth.json")
                 if (!authFile.exists()) return emptyList()
 

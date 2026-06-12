@@ -1,5 +1,6 @@
 import React from 'react';
-import Svg, { Path, Circle, Rect, Text as SvgText } from 'react-native-svg';
+import { Text, Platform, TextStyle } from 'react-native';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
 
 interface KnoodleIconProps {
   size?: number;
@@ -9,7 +10,7 @@ interface KnoodleIconProps {
 export function KnoodleIcon({ size = 120, theme = 'transparent' }: KnoodleIconProps) {
   const isDark = theme === 'dark';
   const isLight = theme === 'light';
-  
+
   return (
     <Svg width={size} height={size} viewBox="0 0 512 512">
       {isDark && <Rect width="512" height="512" rx="114" fill="#0f0f0f" />}
@@ -28,15 +29,15 @@ export function KnoodleIcon({ size = 120, theme = 'transparent' }: KnoodleIconPr
 }
 
 interface KnoodleWordmarkProps {
-  width?: number;
-  height?: number;
+  fontSize?: number;
   theme?: 'dark' | 'light' | 'blush';
+  style?: TextStyle;
 }
 
 export function KnoodleWordmark({
-  width = 240,
-  height = 60,
+  fontSize = 38,
   theme = 'light',
+  style,
 }: KnoodleWordmarkProps) {
   let textColor = '#1a1a1a';
   let ooColor = '#D4537E';
@@ -49,50 +50,22 @@ export function KnoodleWordmark({
     ooColor = '#D4537E';
   }
 
+  const fontFamily = Platform.OS === 'ios' ? 'Georgia' : 'serif';
+
   return (
-    <Svg width={width} height={height} viewBox="0 0 480 120">
-      <Path
-        d="M18 84 C18 53 38 35 56 44 C74 53 74 72 92 63 C110 53 110 28 92 19 C74 10 56 22 56 44 C56 66 74 78 92 69"
-        fill="none"
-        stroke="#D4537E"
-        strokeWidth="7"
-        strokeLinecap="round"
-      />
-      <Circle cx="18" cy="84" r="9" fill="#7F77DD" />
-      <Circle cx="92" cy="69" r="9" fill="#EF9F27" />
-      <SvgText
-        x="112"
-        y="78"
-        fontFamily="Georgia"
-        fontSize="64"
-        fontWeight="500"
-        letterSpacing="-2"
-        fill={textColor}
-      >
-        kn
-      </SvgText>
-      <SvgText
-        x="226"
-        y="78"
-        fontFamily="Georgia"
-        fontSize="64"
-        fontWeight="500"
-        letterSpacing="-2"
-        fill={ooColor}
-      >
-        oo
-      </SvgText>
-      <SvgText
-        x="332"
-        y="78"
-        fontFamily="Georgia"
-        fontSize="64"
-        fontWeight="500"
-        letterSpacing="-2"
-        fill={textColor}
-      >
-        dle
-      </SvgText>
-    </Svg>
+    <Text
+      style={[
+        {
+          fontFamily,
+          fontSize,
+          fontWeight: '500',
+          color: textColor,
+          letterSpacing: -1.5,
+        },
+        style,
+      ]}
+    >
+      kn<Text style={{ color: ooColor }}>oo</Text>dle
+    </Text>
   );
 }

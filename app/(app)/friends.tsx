@@ -133,9 +133,35 @@ export default function FriendsScreen() {
   }, [uid]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFriendsData();
-  }, [fetchFriendsData]);
+
+    if (!uid) return;
+
+    // Subscribe to realtime changes on the friends table
+    console.log('[FriendsScreen] Subscribing to friends realtime changes...');
+    const channel = supabase
+      .channel(`friends_realtime_sync_${Math.random().toString(36).substring(2, 9)}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friends',
+        },
+        (payload) => {
+          console.log('[FriendsScreen] Realtime change detected on friends table:', payload);
+          fetchFriendsData();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[FriendsScreen] Realtime friends subscription status:', status);
+      });
+
+    return () => {
+      console.log('[FriendsScreen] Unsubscribing from friends realtime changes...');
+      channel.unsubscribe();
+    };
+  }, [uid, fetchFriendsData]);
 
   const onRefresh = async () => {
     setRefreshing(true);

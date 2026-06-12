@@ -20,6 +20,7 @@ import { Colors } from '../../src/constants/Colors';
 import { Spacing } from '../../src/constants/theme';
 import { supabase } from '../../src/lib/supabaseClient';
 import { useAuthStore } from '../../src/store/authStore';
+import * as SecureStore from 'expo-secure-store';
 
 const PRESET_AVATARS = [
   { name: 'Felix', url: 'https://api.dicebear.com/7.x/bottts/png?seed=Felix' },
@@ -129,6 +130,25 @@ export default function SettingsScreen() {
       return session.user.email.substring(0, 2).toUpperCase();
     }
     return 'U';
+  };
+
+  const triggerTestNotification = async () => {
+    if (!session?.user) return;
+    try {
+      const { error: insertError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: session.user.id,
+          title: 'Test Notification 🚀',
+          message: 'This is a test background push notification!',
+          type: 'test_notification',
+          is_read: false,
+        });
+      if (insertError) throw insertError;
+      Alert.alert('Success', 'Test notification inserted! Press Home to background the app and test background delivery.');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to trigger test notification');
+    }
   };
 
   return (
@@ -269,6 +289,23 @@ export default function SettingsScreen() {
                 {colorScheme === 'dark' ? 'Dark Mode' : 'Light Mode'}
               </Text>
               <Ionicons name="swap-horizontal" size={16} color={colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Test Utilities Section */}
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>TEST UTILITIES (TEMPORARY)</Text>
+        
+        <View style={[styles.settingsGroup, { backgroundColor: colorScheme === 'dark' ? '#1E1E1E' : '#F5F5F7', borderColor: colors.border }]}>
+          <TouchableOpacity style={styles.settingsRow} onPress={triggerTestNotification}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: '#4CAF5020' }]}>
+                <Ionicons name="notifications-outline" size={20} color="#4CAF50" />
+              </View>
+              <Text style={[styles.rowText, { color: colors.text }]}>Send Test Push Notification</Text>
+            </View>
+            <View style={styles.rowRight}>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
             </View>
           </TouchableOpacity>
         </View>

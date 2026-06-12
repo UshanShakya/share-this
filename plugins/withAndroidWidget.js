@@ -92,7 +92,7 @@ const withAndroidWidgetManifest = (config) => {
         $: {
           'android:name': '.WidgetConfigurationActivity',
           'android:exported': 'true',
-          'android:theme': '@style/Theme.AppCompat.Light.Dialog', // Simple dialog theme for setup
+          'android:theme': '@style/Theme.AppCompat.Dialog', // Simple dark dialog theme for setup
         },
         'intent-filter': [
           {

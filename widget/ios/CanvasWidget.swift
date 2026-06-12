@@ -103,8 +103,23 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     func timeline(for configuration: SelectRoomIntent, in context: Context) async -> Timeline<CanvasWidgetEntry> {
-        let roomName = configuration.room?.name ?? "No Room"
-        let roomId = configuration.room?.id ?? ""
+        var roomName = configuration.room?.name ?? "No Room"
+        var roomId = configuration.room?.id ?? ""
+        
+        // Check if the selected room still exists in widget_rooms.json
+        if !roomId.isEmpty {
+            if let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.ushanshakya.sharedcanvas") {
+                let fileURL = containerURL.appendingPathComponent("widget_rooms.json")
+                if let data = try? Data(contentsOf: fileURL),
+                   let payload = try? JSONDecoder().decode(RoomsPayload.self, from: data) {
+                    let roomExists = payload.rooms.contains { $0.id == roomId }
+                    if !roomExists {
+                        roomId = ""
+                        roomName = "No Room"
+                    }
+                }
+            }
+        }
         
         var strokes: [Stroke] = []
         if !roomId.isEmpty {
@@ -122,6 +137,30 @@ struct Provider: AppIntentTimelineProvider {
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.ushanshakya.sharedcanvas") else {
             return []
         }
+        
+        // 1. Check if the app is active in this room
+        let activeURL = containerURL.appendingPathComponent("widget_active.json")
+        struct ActivePayload: Codable {
+            let roomId: String?
+        }
+        
+        if let activeData = try? Data(contentsOf: activeURL),
+           let active = try? JSONDecoder().decode(ActivePayload.self, from: activeData),
+           active.roomId == roomId {
+            
+            // App is actively editing this room! Read local strokes file.
+            let strokesURL = containerURL.appendingPathComponent("widget_strokes_\(roomId).json")
+            struct StrokesPayload: Codable {
+                let strokes: [Stroke]
+            }
+            if let strokesData = try? Data(contentsOf: strokesURL),
+               let payload = try? JSONDecoder().decode(StrokesPayload.self, from: strokesData) {
+                print("[CanvasWidget] Read strokes locally for active room \(roomId)")
+                return payload.strokes
+            }
+        }
+        
+        // 2. Fallback to network fetch if not active or file not found
         let authURL = containerURL.appendingPathComponent("widget_auth.json")
         guard let authData = try? Data(contentsOf: authURL),
               let auth = try? JSONDecoder().decode(AuthPayload.self, from: authData) else {
@@ -280,7 +319,16 @@ struct CanvasWidgetEntryView : View {
             .padding(.horizontal, 10)
             .padding(.top, 8)
             
-            if entry.strokes.isEmpty {
+            if entry.roomId.isEmpty {
+                VStack {
+                    Spacer()
+                    Text("Hold widget to setup")
+                        .font(.footnote)
+                        .foregroundColor(.gray)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if entry.strokes.isEmpty {
                 VStack {
                     Spacer()
                     Text("No drawings yet")

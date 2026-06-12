@@ -3,12 +3,14 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { ActivityIndicator, View, StyleSheet, useColorScheme, Alert, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 
 let Notifications: any = null;
 try {
   Notifications = require('expo-notifications');
-} catch (err) {
-  console.warn('[Notifications] Failed to load expo-notifications in this environment:', err);
+} catch (err: any) {
+  console.log('[RootLayout] expo-notifications could not be required (normal in Expo Go):', err.message);
 }
 
 import { useAuthStore } from '../src/store/authStore';
@@ -23,7 +25,7 @@ import { KnoodleSplashScreen } from '../src/components/KnoodleSplashScreen';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Configure notification behavior for when the app is in the foreground
-if (Notifications) {
+if (Notifications && typeof Notifications.setNotificationHandler === 'function') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -57,6 +59,54 @@ function AuthGuard() {
     }
   }, [session, segments, isLoading]);
 
+  // Setup notification response listener (taps on notifications when app is in background or closed)
+  useEffect(() => {
+    if (!Notifications || typeof Notifications.addNotificationResponseReceivedListener !== 'function') {
+      return;
+    }
+
+    const subscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
+      const data = response.notification.request.content.data;
+      if (data && data.relatedId && session) {
+        // Direct navigate to the specific room canvas
+        setTimeout(() => {
+          router.push(`/rooms/${data.relatedId}/canvas`);
+        }, 100);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [router, session]);
+
+  // Check if app was opened from a cold-start/killed state by tapping a notification
+  useEffect(() => {
+    if (!Notifications || typeof Notifications.getLastNotificationResponseAsync !== 'function') {
+      return;
+    }
+
+    const checkInitialNotification = async () => {
+      try {
+        const response = await Notifications.getLastNotificationResponseAsync();
+        if (response) {
+          const data = response.notification.request.content.data;
+          if (data && data.relatedId && session) {
+            setTimeout(() => {
+              router.push(`/rooms/${data.relatedId}/canvas`);
+            }, 500);
+          }
+        }
+      } catch (err) {
+        console.warn('[PushNotification] Error checking initial notification:', err);
+      }
+    };
+
+    if (session && !isLoading) {
+      checkInitialNotification();
+    }
+  }, [session, isLoading, router]);
+
   return null;
 }
 
@@ -69,20 +119,26 @@ export default function RootLayout() {
   const [splashAnimationComplete, setSplashAnimationComplete] = useState(false);
 
   useEffect(() => {
+    // Reset active room on app startup
+    sharedStorage.syncActiveRoom(null);
+
     // Hide the native splash screen as soon as the JS app mounts
     SplashScreen.hideAsync().catch(() => {});
 
     // Request system notification permissions
     const requestNotificationPermissions = async () => {
+      if (!Notifications || typeof Notifications.getPermissionsAsync !== 'function') {
+        return;
+      }
       try {
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
-        if (existingStatus !== 'granted') {
+        if (existingStatus !== 'granted' && typeof Notifications.requestPermissionsAsync === 'function') {
           const { status } = await Notifications.requestPermissionsAsync();
           finalStatus = status;
         }
         
-        if (finalStatus === 'granted' && Platform.OS === 'android') {
+        if (finalStatus === 'granted' && Platform.OS === 'android' && typeof Notifications.setNotificationChannelAsync === 'function') {
           await Notifications.setNotificationChannelAsync('default', {
             name: 'default',
             importance: Notifications.AndroidImportance.MAX,
@@ -95,6 +151,52 @@ export default function RootLayout() {
       }
     };
     requestNotificationPermissions();
+
+    const registerForPushNotifications = async (userId: string) => {
+      // Safeguard: Notifications must be loaded (non-Expo Go) and running on physical device
+      if (!Notifications || typeof Notifications.getPermissionsAsync !== 'function') {
+        return;
+      }
+      
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted' && typeof Notifications.requestPermissionsAsync === 'function') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        
+        if (finalStatus !== 'granted') {
+          return;
+        }
+
+        // Must be physical device for remote push notifications
+        if (!Device.isDevice) {
+          return;
+        }
+
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+        if (!projectId) {
+          console.warn('[PushNotification] No EAS projectId found. Registering push token skipped.');
+          return;
+        }
+
+        const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+        const token = tokenData.data;
+
+        // Save token to Supabase profiles table
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ expo_push_token: token })
+          .eq('id', userId);
+
+        if (updateError) {
+          console.warn('[PushNotification] Failed to save push token to profiles:', updateError.message);
+        }
+      } catch (err) {
+        console.warn('[PushNotification] Error registering push notification token:', err);
+      }
+    };
 
     const bootstrapAuth = async () => {
       try {
@@ -114,6 +216,7 @@ export default function RootLayout() {
           }
           if (profileData) {
             setProfile(profileData);
+            registerForPushNotifications(currentSession.user.id).catch(() => {});
           }
         }
       } catch (err) {
@@ -142,6 +245,7 @@ export default function RootLayout() {
           }
           if (profileData) {
             setProfile(profileData);
+            registerForPushNotifications(currentSession.user.id).catch(() => {});
           }
         } catch (err) {
           console.error('[RootLayout onAuthStateChange] Error fetching profile:', err);

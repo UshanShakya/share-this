@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
   ScrollView,
   useColorScheme,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +33,23 @@ export default function RegisterScreen() {
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   const validate = () => {
     const errors: { [key: string]: string } = {};
@@ -91,17 +109,24 @@ export default function RegisterScreen() {
     >
       <ScrollView
         style={{ backgroundColor: colors.background }}
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={[
+          styles.scrollContainer,
+          keyboardVisible && { paddingTop: Platform.OS === 'ios' ? 40 : 20, paddingBottom: 20 }
+        ]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <View style={{ marginBottom: 16 }}>
-            <KnoodleIcon size={80} theme="transparent" />
-          </View>
-          <KnoodleWordmark width={180} height={45} theme={colorScheme === 'dark' ? 'dark' : 'light'} />
-          <Text style={[styles.subtitle, { color: colors.textSecondary, marginTop: 12 }]}>
-            Join Knoodle and sketch together
-          </Text>
+        <View style={[styles.header, keyboardVisible && { marginBottom: 16 }]}>
+          {!keyboardVisible && (
+            <View style={{ marginBottom: 16 }}>
+              <KnoodleIcon size={80} theme="transparent" />
+            </View>
+          )}
+          <KnoodleWordmark fontSize={keyboardVisible ? 32 : 48} theme={colorScheme === 'dark' ? 'dark' : 'light'} />
+          {!keyboardVisible && (
+            <Text style={[styles.subtitle, { color: colors.textSecondary, marginTop: 12 }]}>
+              Join Knoodle and sketch together
+            </Text>
+          )}
         </View>
 
         <View style={styles.form}>
@@ -313,7 +338,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: Platform.OS === 'ios' ? 80 : 50,
     paddingBottom: 40,
-    justifyContent: 'center',
   },
   header: {
     marginBottom: 32,

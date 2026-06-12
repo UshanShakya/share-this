@@ -5,6 +5,7 @@ import { useAuth } from './useAuth';
 import { realtimeService, Collaborator } from '../lib/realtime';
 import { supabase } from '../lib/supabaseClient';
 import { Point, Stroke, Command } from '../types/canvas';
+import { sharedStorage } from '../lib/sharedStorage';
 
 export function useCanvas(roomId: string) {
   const { session } = useAuth();
@@ -82,6 +83,20 @@ export function useCanvas(roomId: string) {
       realtimeService.leaveRoom();
     };
   }, [roomId, userId, setStrokes]);
+
+  // Sync strokes to shared storage for widget instant rendering
+  useEffect(() => {
+    if (!roomId) return;
+    
+    // Initial sync
+    sharedStorage.syncActiveRoomStrokes(roomId, useCanvasStore.getState().strokes);
+
+    // Sync on store changes
+    const unsubscribe = useCanvasStore.subscribe((state) => {
+      sharedStorage.syncActiveRoomStrokes(roomId, state.strokes);
+    });
+    return () => unsubscribe();
+  }, [roomId]);
 
   // Touch drawing handlers
   const startDrawing = (x: number, y: number) => {

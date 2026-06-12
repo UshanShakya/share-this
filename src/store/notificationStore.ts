@@ -5,8 +5,8 @@ import { AppNotification } from '../types/notification';
 let Notifications: any = null;
 try {
   Notifications = require('expo-notifications');
-} catch (err) {
-  console.warn('[Notifications] Failed to load expo-notifications in notificationStore:', err);
+} catch (err: any) {
+  console.log('[NotificationStore] expo-notifications could not be required (normal in Expo Go):', err.message);
 }
 
 import { sharedStorage } from '../lib/sharedStorage';
@@ -168,7 +168,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => {
       }
 
       // Create new Realtime channel for user notifications
-      const channel = supabase.channel(`notifications:${userId}`, {
+      const channel = supabase.channel(`notifications_${userId}_${Math.random().toString(36).substring(2, 9)}`, {
         config: {
           broadcast: { self: false },
         },
@@ -195,7 +195,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => {
             if (payload.eventType === 'INSERT') {
               const newRecord = payload.new;
               
-              if (Notifications) {
+              if (Notifications && typeof Notifications.scheduleNotificationAsync === 'function') {
                 Notifications.scheduleNotificationAsync({
                   content: {
                     title: newRecord.title || 'Knoodle Update',
@@ -205,7 +205,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => {
                       relatedId: newRecord.related_id,
                     },
                   },
-                  trigger: null,
+                  trigger: {
+                    channelId: 'default',
+                  },
                 }).catch((err: any) => {
                   console.warn('[subscribeNotifications] Failed to schedule notification:', err);
                 });
@@ -216,7 +218,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => {
             }
           }
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          if (err) {
+            console.warn(`[subscribeNotifications] Channel error for notifications:${userId}:`, err);
+          }
+        });
 
       activeSubscription = channel;
 
