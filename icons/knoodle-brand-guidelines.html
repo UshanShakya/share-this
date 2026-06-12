@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Knoodle — Brand Guidelines</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, serif; background: #fafaf9; color: #1a1a1a; padding: 48px 40px; max-width: 800px; }
+  h1 { font-size: 36px; font-weight: 500; letter-spacing: -1px; margin-bottom: 4px; }
+  h1 span { color: #D4537E; }
+  .sub { font-size: 14px; color: #888; margin-bottom: 48px; letter-spacing: 0.04em; }
+  h2 { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: #aaa; margin: 40px 0 16px; }
+  .swatch-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .swatch { width: 100px; }
+  .swatch-color { height: 64px; border-radius: 10px; margin-bottom: 8px; }
+  .swatch-name { font-size: 12px; font-weight: 500; color: #1a1a1a; }
+  .swatch-hex  { font-size: 11px; color: #888; font-family: monospace; }
+  .swatch-use  { font-size: 11px; color: #aaa; margin-top: 2px; }
+  .logo-row { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin: 16px 0; }
+  .logo-bg { padding: 20px 28px; border-radius: 14px; display: flex; align-items: center; gap: 10px; }
+  .wordmark { font-size: 28px; font-weight: 500; letter-spacing: -0.8px; }
+  .rule { border: none; border-top: 1px solid #eee; margin: 40px 0; }
+  .type-row { margin: 10px 0; display: flex; align-items: baseline; gap: 16px; }
+  .type-label { font-size: 11px; color: #aaa; width: 120px; flex-shrink: 0; font-family: monospace; }
+  .dont-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+  .dont-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #888; }
+  .dont-card b { color: #D4537E; display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; font-family: sans-serif; }
+</style>
+</head>
+<body>
+
+<h1>kn<span>oo</span>dle</h1>
+<p class="sub">brand guidelines · v1.0</p>
+
+<h2>Colors</h2>
+<div class="swatch-row">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#D4537E"></div>
+    <div class="swatch-name">Knot pink</div>
+    <div class="swatch-hex">#D4537E</div>
+    <div class="swatch-use">Primary / knot path</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#7F77DD"></div>
+    <div class="swatch-name">Loop purple</div>
+    <div class="swatch-hex">#7F77DD</div>
+    <div class="swatch-use">Person A dot</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#EF9F27"></div>
+    <div class="swatch-name">End amber</div>
+    <div class="swatch-hex">#EF9F27</div>
+    <div class="swatch-use">Person B dot</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#0f0f0f; border: 1px solid #eee;"></div>
+    <div class="swatch-name">Canvas dark</div>
+    <div class="swatch-hex">#0f0f0f</div>
+    <div class="swatch-use">Splash / dark bg</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#FBEAF0"></div>
+    <div class="swatch-name">Blush</div>
+    <div class="swatch-hex">#FBEAF0</div>
+    <div class="swatch-use">Light icon bg</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#fafaf9; border: 1px solid #eee;"></div>
+    <div class="swatch-name">Paper</div>
+    <div class="swatch-hex">#fafaf9</div>
+    <div class="swatch-use">App background</div>
+  </div>
+</div>
+
+<hr class="rule"/>
+
+<h2>Wordmark</h2>
+<div class="logo-row">
+  <div class="logo-bg" style="background:#fafaf9; border:1px solid #eee;">
+    <svg width="40" height="40" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 56 C24 44 32 36 40 40 C48 44 48 52 56 48 C64 44 64 32 56 28 C48 24 40 30 40 40 C40 50 48 56 56 52" fill="none" stroke="#D4537E" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="24" cy="56" r="6" fill="#7F77DD"/><circle cx="56" cy="52" r="6" fill="#EF9F27"/>
+    </svg>
+    <div class="wordmark" style="color:#1a1a1a">kn<span style="color:#D4537E">oo</span>dle</div>
+  </div>
+  <div class="logo-bg" style="background:#0f0f0f;">
+    <svg width="40" height="40" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 56 C24 44 32 36 40 40 C48 44 48 52 56 48 C64 44 64 32 56 28 C48 24 40 30 40 40 C40 50 48 56 56 52" fill="none" stroke="#D4537E" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="24" cy="56" r="6" fill="#7F77DD"/><circle cx="56" cy="52" r="6" fill="#EF9F27"/>
+    </svg>
+    <div class="wordmark" style="color:#ffffff">kn<span style="color:#F06292">oo</span>dle</div>
+  </div>
+  <div class="logo-bg" style="background:#FBEAF0;">
+    <svg width="40" height="40" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 56 C24 44 32 36 40 40 C48 44 48 52 56 48 C64 44 64 32 56 28 C48 24 40 30 40 40 C40 50 48 56 56 52" fill="none" stroke="#D4537E" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="24" cy="56" r="6" fill="#7F77DD"/><circle cx="56" cy="52" r="6" fill="#EF9F27"/>
+    </svg>
+    <div class="wordmark" style="color:#993556">kn<span style="color:#D4537E">oo</span>dle</div>
+  </div>
+</div>
+
+<hr class="rule"/>
+
+<h2>Typography</h2>
+<div class="type-row"><span class="type-label">Display / logo</span><span style="font-size:32px;font-weight:500;letter-spacing:-1px">Georgia, serif</span></div>
+<div class="type-row"><span class="type-label">UI / body</span><span style="font-size:16px;font-family:sans-serif">System sans-serif</span></div>
+<div class="type-row"><span class="type-label">Tagline</span><span style="font-size:14px;color:#888;letter-spacing:0.06em">draw together</span></div>
+
+<hr class="rule"/>
+
+<h2>Logo meaning</h2>
+<p style="font-size:14px;line-height:1.7;color:#555;max-width:520px">
+  The knot is a single continuous path connecting two colored dots — one purple, one amber.
+  The dots represent two people. The path between them is the shared canvas.
+  The name "Knoodle" merges <em>knot</em> (connection) with <em>noodle</em> (to sketch, doodle).
+  The double-o in the wordmark mirrors the loop shape and is always tinted pink.
+</p>
+
+<hr class="rule"/>
+
+<h2>Usage rules</h2>
+<div class="dont-row">
+  <div class="dont-card"><b>Don't</b>Recolor the knot path to anything other than pink</div>
+  <div class="dont-card"><b>Don't</b>Remove the two endpoint dots</div>
+  <div class="dont-card"><b>Don't</b>Use the wordmark without the icon</div>
+  <div class="dont-card"><b>Don't</b>Stretch or distort the icon proportions</div>
+  <div class="dont-card"><b>Don't</b>Place on a mid-tone background — use dark, light, or blush only</div>
+</div>
+
+</body>
+</html>

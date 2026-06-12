@@ -40,9 +40,6 @@ export default function CanvasScreen() {
 
   // Initialize canvas drawing hook when room is verified
   const {
-    strokes,
-    remoteActiveStrokes,
-    currentStroke,
     activeColor,
     activeWidth,
     activeTool,
@@ -53,9 +50,13 @@ export default function CanvasScreen() {
     draw,
     endDrawing,
     undo,
+    redo,
     clear,
     addTextStroke,
     deleteStroke,
+    editText,
+    moveObject,
+    eraseStrokes,
     setColor,
     setWidth,
     setTool,
@@ -279,19 +280,16 @@ export default function CanvasScreen() {
           </View>
 
           <Canvas
-            strokes={strokes}
-            remoteActiveStrokes={remoteActiveStrokes}
-            currentStroke={currentStroke}
-            activeColor={activeColor}
-            activeWidth={activeWidth}
-            activeTool={activeTool}
-            eraserMode={eraserMode}
             historyLoading={historyLoading}
             startDrawing={startDrawing}
             draw={draw}
             endDrawing={endDrawing}
             addTextStroke={addTextStroke}
             deleteStroke={deleteStroke}
+            redo={redo}
+            editText={editText}
+            moveObject={moveObject}
+            eraseStrokes={eraseStrokes}
           />
 
           {/* Floating Settings StrokeToolbar */}
@@ -306,6 +304,7 @@ export default function CanvasScreen() {
               setTool={setTool}
               setEraserMode={setEraserMode}
               undo={undo}
+              redo={redo}
               clear={clear}
             />
           </View>

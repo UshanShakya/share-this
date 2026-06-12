@@ -4,31 +4,26 @@ import { useCanvasStore } from '../store/canvasStore';
 import { useAuth } from './useAuth';
 import { realtimeService, Collaborator } from '../lib/realtime';
 import { supabase } from '../lib/supabaseClient';
-import { Point, Stroke } from '../types/canvas';
+import { Point, Stroke, Command } from '../types/canvas';
 
 export function useCanvas(roomId: string) {
   const { session } = useAuth();
   const userId = session?.user?.id;
+  // Actions
+  const setStrokes = useCanvasStore((state) => state.setStrokes);
+  const addStroke = useCanvasStore((state) => state.addStroke);
+  const clearStrokes = useCanvasStore((state) => state.clearStrokes);
 
-  const {
-    strokes,
-    remoteActiveStrokes,
-    currentStroke,
-    activeColor,
-    activeWidth,
-    activeTool,
-    eraserMode,
-    setStrokes,
-    startLocalStroke,
-    updateLocalStroke,
-    endLocalStroke,
-    undoLastLocalStroke,
-    clearStrokes,
-    setColor,
-    setWidth,
-    setTool,
-    setEraserMode,
-  } = useCanvasStore();
+  // Active Tool/Color properties (needed by the UI toolbar in CanvasScreen)
+  const activeColor = useCanvasStore((state) => state.activeColor);
+  const activeWidth = useCanvasStore((state) => state.activeWidth);
+  const activeTool = useCanvasStore((state) => state.activeTool);
+  const eraserMode = useCanvasStore((state) => state.eraserMode);
+
+  const setColor = useCanvasStore((state) => state.setColor);
+  const setWidth = useCanvasStore((state) => state.setWidth);
+  const setTool = useCanvasStore((state) => state.setTool);
+  const setEraserMode = useCanvasStore((state) => state.setEraserMode);
 
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -39,27 +34,6 @@ export function useCanvas(roomId: string) {
     setPrevRoomId(roomId);
     setHistoryLoading(true);
   }
-
-  // References to keep callbacks and drawing loops hot without stale state closures
-  const stateRef = useRef({
-    userId,
-    roomId,
-    currentStroke,
-    activeColor,
-    activeWidth,
-    activeTool,
-  });
-
-  useEffect(() => {
-    stateRef.current = {
-      userId,
-      roomId,
-      currentStroke,
-      activeColor,
-      activeWidth,
-      activeTool,
-    };
-  }, [userId, roomId, currentStroke, activeColor, activeWidth, activeTool]);
 
   // Connect to realtime and load historical strokes
   useEffect(() => {
@@ -113,92 +87,269 @@ export function useCanvas(roomId: string) {
   const startDrawing = (x: number, y: number) => {
     if (!userId) return;
     const startPoint: Point = { x, y };
-    startLocalStroke(startPoint);
+    
+    const state = useCanvasStore.getState();
     realtimeService.broadcastDraw(
       userId,
       [startPoint],
-      stateRef.current.activeColor,
-      stateRef.current.activeWidth,
-      stateRef.current.activeTool
+      state.activeColor,
+      state.activeWidth,
+      state.activeTool
     );
   };
 
-  const draw = (x: number, y: number) => {
-    if (!userId || !stateRef.current.currentStroke) return;
+  const draw = (points: Point[]) => {
+    if (!userId || points.length === 0) return;
+    const state = useCanvasStore.getState();
     
-    // Performance optimization (Task 3.16): distance-threshold filtering
-    // Only register and broadcast points if the cursor has moved by at least 2 pixels
-    const points = stateRef.current.currentStroke;
-    const lastPoint = points[points.length - 1];
-    const distance = Math.hypot(x - lastPoint.x, y - lastPoint.y);
+    // Broadcast the accumulated points path to peers in real-time
+    realtimeService.broadcastDraw(
+      userId,
+      points,
+      state.activeColor,
+      state.activeWidth,
+      state.activeTool
+    );
+  };
 
-    if (distance >= 2) {
-      const nextPoint = { x, y };
-      updateLocalStroke(nextPoint);
-      
-      // Broadcast local points path to peers in real-time
-      realtimeService.broadcastDraw(
-        userId,
-        [...points, nextPoint],
-        stateRef.current.activeColor,
-        stateRef.current.activeWidth,
-        stateRef.current.activeTool
-      );
+  // Undo and Redo stacks private to this hook instance
+  const undoStack = useRef<Command[]>([]);
+  const redoStack = useRef<Command[]>([]);
+
+  // DB Sync Helper Functions
+  const saveStrokeToDB = (stroke: Stroke) => {
+    supabase
+      .from('strokes')
+      .insert({
+        id: stroke.id,
+        room_id: stroke.roomId,
+        user_id: stroke.userId,
+        points: stroke.points,
+        color: stroke.color,
+        width: stroke.width,
+        text: stroke.text,
+      })
+      .then(({ error }) => {
+        if (error) console.error('Error saving stroke in DB:', error.message);
+      });
+  };
+
+  const deleteStrokeFromDB = (id: string) => {
+    supabase
+      .from('strokes')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Error deleting stroke in DB:', error.message);
+      });
+  };
+
+  const updateTextInDB = (id: string, text: string) => {
+    supabase
+      .from('strokes')
+      .update({ text })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Error updating text in DB:', error.message);
+      });
+  };
+
+  const updatePointsInDB = (id: string, points: Point[]) => {
+    supabase
+      .from('strokes')
+      .update({ points })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Error updating points in DB:', error.message);
+      });
+  };
+
+  const updateColorInDB = (id: string, color: string) => {
+    supabase
+      .from('strokes')
+      .update({ color })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Error updating color in DB:', error.message);
+      });
+  };
+
+  const updateWidthInDB = (id: string, width: number) => {
+    supabase
+      .from('strokes')
+      .update({ width })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Error updating width in DB:', error.message);
+      });
+  };
+
+  // Symmetric Command Application and Inversion
+  const applyCommand = (cmd: Command, isUndoOrRedo = false) => {
+    if (!userId) return;
+
+    switch (cmd.type) {
+      case 'ADD_STROKE': {
+        useCanvasStore.getState().addStroke(cmd.stroke);
+        realtimeService.broadcastDrawEnd(userId, cmd.stroke);
+        saveStrokeToDB(cmd.stroke);
+        break;
+      }
+      case 'DELETE_STROKE': {
+        useCanvasStore.setState((state) => ({
+          strokes: state.strokes.filter((s) => s.id !== cmd.id),
+        }));
+        realtimeService.broadcastUndo(cmd.id);
+        deleteStrokeFromDB(cmd.id);
+        break;
+      }
+      case 'SPLIT_STROKE': {
+        useCanvasStore.setState((state) => ({
+          strokes: [...state.strokes.filter((s) => s.id !== cmd.originalId), ...cmd.newStrokes],
+        }));
+        realtimeService.broadcastUndo(cmd.originalId);
+        cmd.newStrokes.forEach((s) => realtimeService.broadcastDrawEnd(userId, s));
+        
+        deleteStrokeFromDB(cmd.originalId);
+        cmd.newStrokes.forEach(saveStrokeToDB);
+        break;
+      }
+      case 'EDIT_TEXT': {
+        const currentStroke = useCanvasStore.getState().strokes.find((s) => s.id === cmd.id);
+        if (!currentStroke) return;
+        const updatedStroke = {
+          ...currentStroke,
+          text: cmd.toText,
+          timestamp: Date.now(),
+        };
+        useCanvasStore.setState((state) => ({
+          strokes: state.strokes.map((s) => (s.id === cmd.id ? updatedStroke : s)),
+        }));
+        realtimeService.broadcastObjectUpdate(updatedStroke);
+        updateTextInDB(cmd.id, cmd.toText);
+        break;
+      }
+      case 'MOVE_OBJECT': {
+        const currentStroke = useCanvasStore.getState().strokes.find((s) => s.id === cmd.id);
+        if (!currentStroke) return;
+        const updatedStroke = {
+          ...currentStroke,
+          points: cmd.toPoints,
+          timestamp: Date.now(),
+        };
+        useCanvasStore.setState((state) => ({
+          strokes: state.strokes.map((s) => (s.id === cmd.id ? updatedStroke : s)),
+        }));
+        realtimeService.broadcastObjectUpdate(updatedStroke);
+        updatePointsInDB(cmd.id, cmd.toPoints);
+        break;
+      }
+      case 'CHANGE_COLOR': {
+        const currentStroke = useCanvasStore.getState().strokes.find((s) => s.id === cmd.id);
+        if (!currentStroke) return;
+        const updatedStroke = {
+          ...currentStroke,
+          color: cmd.toColor,
+          timestamp: Date.now(),
+        };
+        useCanvasStore.setState((state) => ({
+          strokes: state.strokes.map((s) => (s.id === cmd.id ? updatedStroke : s)),
+        }));
+        realtimeService.broadcastObjectUpdate(updatedStroke);
+        updateColorInDB(cmd.id, cmd.toColor);
+        break;
+      }
+      case 'CHANGE_WIDTH': {
+        const currentStroke = useCanvasStore.getState().strokes.find((s) => s.id === cmd.id);
+        if (!currentStroke) return;
+        const updatedStroke = {
+          ...currentStroke,
+          width: cmd.toWidth,
+          timestamp: Date.now(),
+        };
+        useCanvasStore.setState((state) => ({
+          strokes: state.strokes.map((s) => (s.id === cmd.id ? updatedStroke : s)),
+        }));
+        realtimeService.broadcastObjectUpdate(updatedStroke);
+        updateWidthInDB(cmd.id, cmd.toWidth);
+        break;
+      }
+      case 'BATCH': {
+        cmd.commands.forEach((c) => applyCommand(c, isUndoOrRedo));
+        break;
+      }
     }
   };
 
-  const endDrawing = () => {
-    if (!userId || !roomId || !stateRef.current.currentStroke) return;
+  const invertCommand = (cmd: Command): Command => {
+    switch (cmd.type) {
+      case 'ADD_STROKE':
+        return { type: 'DELETE_STROKE', id: cmd.stroke.id, snapshot: cmd.stroke };
+      case 'DELETE_STROKE':
+        return { type: 'ADD_STROKE', stroke: cmd.snapshot };
+      case 'SPLIT_STROKE':
+        return {
+          type: 'BATCH',
+          commands: [
+            ...cmd.newStrokes.map((s) => ({ type: 'DELETE_STROKE' as const, id: s.id, snapshot: s })),
+            { type: 'ADD_STROKE' as const, stroke: cmd.originalSnapshot },
+          ],
+        };
+      case 'EDIT_TEXT':
+        return { ...cmd, fromText: cmd.toText, toText: cmd.fromText };
+      case 'MOVE_OBJECT':
+        return { ...cmd, fromPoints: cmd.toPoints, toPoints: cmd.fromPoints };
+      case 'CHANGE_COLOR':
+        return { ...cmd, fromColor: cmd.toColor, toColor: cmd.fromColor };
+      case 'CHANGE_WIDTH':
+        return { ...cmd, fromWidth: cmd.toWidth, toWidth: cmd.fromWidth };
+      case 'BATCH':
+        return {
+          type: 'BATCH',
+          commands: [...cmd.commands].reverse().map(invertCommand),
+        };
+    }
+  };
 
-    // Generate unique ID for database syncing
+  const executeCommand = (cmd: Command) => {
+    applyCommand(cmd);
+    undoStack.current.push(cmd);
+    redoStack.current = []; // Clear redo stack on new action
+  };
+
+  const endDrawing = (points: Point[]) => {
+    if (!userId || !roomId || points.length === 0) return;
+    const state = useCanvasStore.getState();
+
+    const finalColor = state.activeTool === 'eraser' ? 'eraser' : state.activeColor;
     const strokeId = generateUUID();
     
-    const stroke = endLocalStroke(strokeId, userId, roomId);
+    const stroke: Stroke = {
+      id: strokeId,
+      userId,
+      roomId,
+      points,
+      color: finalColor,
+      width: state.activeWidth,
+      timestamp: Date.now(),
+    };
     
-    if (stroke) {
-      // 1. Broadcast stroke finished event
-      realtimeService.broadcastDrawEnd(userId, stroke);
-      
-      // 2. Persist to database in the background (prevents blocking)
-      supabase
-        .from('strokes')
-        .insert({
-          id: stroke.id,
-          room_id: stroke.roomId,
-          user_id: stroke.userId,
-          points: stroke.points,
-          color: stroke.color,
-          width: stroke.width,
-        })
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error saving stroke:', error.message);
-          }
-        });
-    }
+    executeCommand({ type: 'ADD_STROKE', stroke });
   };
 
   const undo = () => {
-    if (!userId) return;
+    const cmd = undoStack.current.pop();
+    if (!cmd) return;
+    const inverse = invertCommand(cmd);
+    applyCommand(inverse, true);
+    redoStack.current.push(cmd);
+  };
 
-    // 1. Undo local state and retrieve ID
-    const undoneId = undoLastLocalStroke(userId);
-
-    if (undoneId) {
-      // 2. Broadcast undo to other users
-      realtimeService.broadcastUndo(undoneId);
-
-      // 3. Delete from remote database
-      supabase
-        .from('strokes')
-        .delete()
-        .eq('id', undoneId)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error undoing stroke in DB:', error.message);
-          }
-        });
-    }
+  const redo = () => {
+    const cmd = redoStack.current.pop();
+    if (!cmd) return;
+    applyCommand(cmd, true);
+    undoStack.current.push(cmd);
   };
 
   const clear = () => {
@@ -228,73 +379,50 @@ export function useCanvas(roomId: string) {
     if (!userId || !roomId || !text.trim()) return;
 
     const strokeId = generateUUID();
+    const state = useCanvasStore.getState();
 
-    // Font size scaling based on brush size selection:
     let fontSize = 20;
-    if (activeWidth === 3) fontSize = 16;
-    if (activeWidth === 12) fontSize = 32;
+    if (state.activeWidth === 3) fontSize = 16;
+    if (state.activeWidth === 12) fontSize = 32;
 
     const stroke: Stroke = {
       id: strokeId,
       userId,
       roomId,
       points: [{ x, y }],
-      color: activeColor,
+      color: state.activeColor,
       width: fontSize,
       timestamp: Date.now(),
       text: text.trim(),
     };
 
-    // 1. Add locally
-    useCanvasStore.getState().addStroke(stroke);
-
-    // 2. Broadcast
-    realtimeService.broadcastDrawEnd(userId, stroke);
-
-    // 3. Persist to DB in the background
-    supabase
-      .from('strokes')
-      .insert({
-        id: stroke.id,
-        room_id: stroke.roomId,
-        user_id: stroke.userId,
-        points: stroke.points,
-        color: stroke.color,
-        width: stroke.width,
-        text: stroke.text,
-      })
-      .then(({ error }) => {
-        if (error) {
-          console.error('Error saving text stroke:', error.message);
-        }
-      });
+    executeCommand({ type: 'ADD_STROKE', stroke });
   };
 
   const deleteStroke = (strokeId: string) => {
-    // 1. Delete locally
-    useCanvasStore.setState((state) => ({
-      strokes: state.strokes.filter((s) => s.id !== strokeId),
-    }));
+    const stroke = useCanvasStore.getState().strokes.find((s) => s.id === strokeId);
+    if (!stroke) return;
+    executeCommand({ type: 'DELETE_STROKE', id: strokeId, snapshot: stroke });
+  };
 
-    // 2. Broadcast deletion
-    realtimeService.broadcastUndo(strokeId);
+  const editText = (id: string, fromText: string, toText: string) => {
+    executeCommand({ type: 'EDIT_TEXT', id, fromText, toText });
+  };
 
-    // 3. Delete from DB
-    supabase
-      .from('strokes')
-      .delete()
-      .eq('id', strokeId)
-      .then(({ error }) => {
-        if (error) {
-          console.error('Error deleting stroke:', error.message);
-        }
-      });
+  const moveObject = (id: string, fromPoints: Point[], toPoints: Point[]) => {
+    executeCommand({ type: 'MOVE_OBJECT', id, fromPoints, toPoints });
+  };
+
+  const eraseStrokes = (commands: Command[]) => {
+    if (commands.length === 0) return;
+    if (commands.length === 1) {
+      executeCommand(commands[0]);
+    } else {
+      executeCommand({ type: 'BATCH', commands });
+    }
   };
 
   return {
-    strokes,
-    remoteActiveStrokes,
-    currentStroke,
     activeColor,
     activeWidth,
     activeTool,
@@ -306,9 +434,13 @@ export function useCanvas(roomId: string) {
     draw,
     endDrawing,
     undo,
+    redo,
     clear,
     addTextStroke,
     deleteStroke,
+    editText,
+    moveObject,
+    eraseStrokes,
     
     setColor,
     setWidth,

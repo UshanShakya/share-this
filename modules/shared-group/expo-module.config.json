@@ -1,0 +1,9 @@
+{
+  "platforms": ["ios", "android"],
+  "ios": {
+    "modules": ["SharedGroupModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.sharedgroup.SharedGroupModule"]
+  }
+}

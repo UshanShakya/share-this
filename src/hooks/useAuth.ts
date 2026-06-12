@@ -32,17 +32,47 @@ export const useAuth = () => {
         .single();
 
       if (profileError) {
-        // If profile doesn't exist, we might return null or handle it
+        // If profile doesn't exist (PGRST116), dynamically create it with a preset avatar fallback
         if (profileError.code === 'PGRST116') {
-          return null;
+          const presetSeeds = ['Felix', 'Aneka', 'Jack', 'Buster', 'Cody', 'Daisy', 'Sasha', 'Oliver', 'Milo', 'Rocky', 'Ginger', 'Toby'];
+          const randomSeed = presetSeeds[Math.floor(Math.random() * presetSeeds.length)];
+          const randomAvatarUrl = `https://api.dicebear.com/7.x/bottts/png?seed=${randomSeed}`;
+          
+          const defaultUsername = 'user_' + Math.random().toString(36).substring(2, 10);
+          
+          // Get metadata displayName if available (e.g. from Google oauth metadata)
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          const googleDisplayName = authUser?.user_metadata?.display_name || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name;
+          const finalDisplayName = googleDisplayName || 'User_' + userId.substring(0, 8);
+
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: userId,
+              username: defaultUsername,
+              display_name: finalDisplayName,
+              avatar_url: randomAvatarUrl,
+              updated_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('[fetchProfile] Failed to create fallback profile:', createError.message);
+            return null;
+          }
+          return newProfile as Profile;
         }
         throw profileError;
       }
 
-      // If avatar_url is null or empty, automatically assign a random bottts avatar URL
-      if (data && !data.avatar_url) {
-        const seed = Math.random().toString(36).substring(2, 10);
-        const randomAvatarUrl = `https://api.dicebear.com/7.x/bottts/png?seed=${seed}`;
+      // If avatar_url is null or empty, or is not in our preset list, re-assign a random preset avatar
+      const presetSeeds = ['Felix', 'Aneka', 'Jack', 'Buster', 'Cody', 'Daisy', 'Sasha', 'Oliver', 'Milo', 'Rocky', 'Ginger', 'Toby'];
+      const hasPresetAvatar = data.avatar_url && presetSeeds.some(seed => data.avatar_url?.includes(`seed=${seed}`));
+      
+      if (data && (!data.avatar_url || !hasPresetAvatar)) {
+        const randomSeed = presetSeeds[Math.floor(Math.random() * presetSeeds.length)];
+        const randomAvatarUrl = `https://api.dicebear.com/7.x/bottts/png?seed=${randomSeed}`;
         
         // Update database asynchronously without blocking the UI thread
         supabase

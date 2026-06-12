@@ -153,7 +153,7 @@ export default function NewRoomModal() {
                 styles.submitButton,
                 {
                   backgroundColor: '#7C7CF0',
-                  opacity: pressed || !isValid ? 0.8 : 1,
+                  opacity: !isValid ? 0.35 : pressed ? 0.8 : 1,
                 },
               ]}
             >

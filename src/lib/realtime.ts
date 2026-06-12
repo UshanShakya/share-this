@@ -68,6 +68,19 @@ export const realtimeService = {
       store.addStroke(stroke);
     });
 
+    channel.on('broadcast', { event: 'object-update' }, ({ payload }) => {
+      const { stroke } = payload;
+      useCanvasStore.setState((state) => {
+        const existing = state.strokes.find((s) => s.id === stroke.id);
+        if (!existing || stroke.timestamp > existing.timestamp) {
+          return {
+            strokes: state.strokes.map((s) => s.id === stroke.id ? stroke : s),
+          };
+        }
+        return {};
+      });
+    });
+
     channel.on('broadcast', { event: 'undo' }, ({ payload }) => {
       const { strokeId } = payload;
       useCanvasStore.setState((state) => ({
@@ -125,6 +138,16 @@ export const realtimeService = {
         type: 'broadcast',
         event: 'draw-end',
         payload: { userId, stroke },
+      });
+    }
+  },
+
+  broadcastObjectUpdate: (stroke: Stroke) => {
+    if (currentChannel) {
+      currentChannel.send({
+        type: 'broadcast',
+        event: 'object-update',
+        payload: { stroke },
       });
     }
   },

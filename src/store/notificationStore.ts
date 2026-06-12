@@ -2,6 +2,16 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
 import { AppNotification } from '../types/notification';
 
+let Notifications: any = null;
+try {
+  Notifications = require('expo-notifications');
+} catch (err) {
+  console.warn('[Notifications] Failed to load expo-notifications in notificationStore:', err);
+}
+
+import { sharedStorage } from '../lib/sharedStorage';
+import { useRoomStore } from './roomStore';
+
 interface NotificationState {
   notifications: AppNotification[];
   unreadCount: number;
@@ -11,6 +21,7 @@ interface NotificationState {
   fetchNotifications: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
   addNotification: (
     targetUserId: string,
     title: string,
@@ -82,6 +93,28 @@ export const useNotificationStore = create<NotificationState>((set, get) => {
       }
     },
 
+    deleteNotification: async (id) => {
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        set((state) => {
+          const updated = state.notifications.filter((n) => n.id !== id);
+          const unread = updated.filter((n) => !n.is_read).length;
+          return {
+            notifications: updated,
+            unreadCount: unread,
+          };
+        });
+      } catch (err) {
+        console.error('Error deleting notification:', err);
+      }
+    },
+
     markAllAsRead: async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -150,9 +183,37 @@ export const useNotificationStore = create<NotificationState>((set, get) => {
             table: 'notifications',
             filter: `user_id=eq.${userId}`,
           },
-          () => {
+          (payload: any) => {
             // Re-fetch notifications whenever a change is detected
             get().fetchNotifications();
+
+            // Refresh local room states instantly
+            useRoomStore.getState().fetchRooms().catch(() => {});
+            useRoomStore.getState().fetchRoomInvites().catch(() => {});
+
+            // Trigger system local notifications and widget reload on INSERT event
+            if (payload.eventType === 'INSERT') {
+              const newRecord = payload.new;
+              
+              if (Notifications) {
+                Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: newRecord.title || 'Knoodle Update',
+                    body: newRecord.message || 'Someone updated your shared canvas!',
+                    data: {
+                      type: newRecord.type,
+                      relatedId: newRecord.related_id,
+                    },
+                  },
+                  trigger: null,
+                }).catch((err: any) => {
+                  console.warn('[subscribeNotifications] Failed to schedule notification:', err);
+                });
+              }
+
+              // Instantly reload widget image with latest DB changes
+              sharedStorage.reloadWidget();
+            }
           }
         )
         .subscribe();

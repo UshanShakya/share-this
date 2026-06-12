@@ -35,11 +35,11 @@ export default function AppLayout() {
         }}
       />
       
-      {/* Visible Rooms Stack tab */}
+      {/* Visible Rooms Stack tab (Renamed to Canvases) */}
       <Tabs.Screen
         name="rooms"
         options={{
-          title: 'Rooms',
+          title: 'Canvases',
           headerShown: false,
         }}
       />
@@ -54,12 +54,11 @@ export default function AppLayout() {
       />
 
 
-      {/* Visible Create tab */}
+      {/* Hidden Create tab (Functionality moved to Rooms/Canvases FAB) */}
       <Tabs.Screen
         name="create"
         options={{
-          title: 'Create',
-          headerShown: false,
+          href: null,
         }}
       />
 

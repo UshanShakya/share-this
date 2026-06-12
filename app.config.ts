@@ -2,7 +2,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'SharedCanvas',
+  name: 'Knoodle',
   slug: 'shared-canvas',
   scheme: 'sharedcanvas',
   ios: {

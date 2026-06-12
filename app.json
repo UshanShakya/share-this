@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SharedCanvas",
+    "name": "Knoodle",
     "slug": "shared-canvas",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,7 +8,12 @@
     "scheme": "sharedcanvas",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.ushanshakya.sharedcanvas"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -28,14 +33,21 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0f0f0f",
           "android": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "./plugins/withAndroidWidget",
+      [
+        "./plugins/withIosWidget",
+        {
+          "teamId": "YOUR_TEAM_ID"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

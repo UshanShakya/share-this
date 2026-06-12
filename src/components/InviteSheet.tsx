@@ -154,7 +154,7 @@ export function InviteSheet({ visible, onClose, roomId, roomName }: InviteSheetP
   const handleShareLink = async () => {
     try {
       await Share.share({
-        message: `Join my collaborative drawing room "${roomName}" on SharedCanvas! Draw together here: ${inviteUrl}`,
+        message: `Join my collaborative drawing room "${roomName}" on Knoodle! Draw together here: ${inviteUrl}`,
         title: `Invite to room ${roomName}`,
       });
     } catch (error: any) {

@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/hooks/useAuth';
 import { Colors } from '../../src/constants/Colors';
+import { KnoodleIcon, KnoodleWordmark } from '../../src/components/KnoodleBrand';
 
 export default function RegisterScreen() {
   const colorScheme = useColorScheme();
@@ -85,7 +86,7 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <ScrollView
@@ -94,9 +95,12 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Join SharedCanvas and sketch together
+          <View style={{ marginBottom: 16 }}>
+            <KnoodleIcon size={80} theme="transparent" />
+          </View>
+          <KnoodleWordmark width={180} height={45} theme={colorScheme === 'dark' ? 'dark' : 'light'} />
+          <Text style={[styles.subtitle, { color: colors.textSecondary, marginTop: 12 }]}>
+            Join Knoodle and sketch together
           </Text>
         </View>
 

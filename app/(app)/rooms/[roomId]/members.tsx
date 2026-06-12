@@ -130,7 +130,8 @@ export default function MembersScreen() {
               />
             }
             renderItem={({ item }) => {
-              const profile = item.profiles;
+              const rawProfile = item.profiles;
+              const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile;
               const displayName = profile?.display_name || 'Anonymous User';
               const username = profile?.username || 'anonymous';
               const isItemOwner = activeRoom?.owner_id === item.user_id;

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 import { ThemedText } from '../themed-text';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 interface SideDrawerProps {
   visible: boolean;
@@ -24,7 +25,7 @@ const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 320);
 
 export function SideDrawer({ visible, onClose, title, children }: SideDrawerProps) {
   const theme = useTheme();
-  const animValue = useRef(new Animated.Value(0)).current;
+  const [animValue] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(animValue, {
@@ -36,6 +37,8 @@ export function SideDrawer({ visible, onClose, title, children }: SideDrawerProp
 
   if (!visible) return null;
 
+  const isDark = theme.text === '#ffffff';
+
   const translateX = animValue.interpolate({
     inputRange: [0, 1],
     outputRange: [-DRAWER_WIDTH, 0],
@@ -43,7 +46,7 @@ export function SideDrawer({ visible, onClose, title, children }: SideDrawerProp
 
   const backdropOpacity = animValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 0.5],
+    outputRange: [0, 0.4],
   });
 
   const handleClose = () => {
@@ -55,8 +58,6 @@ export function SideDrawer({ visible, onClose, title, children }: SideDrawerProp
       onClose();
     });
   };
-
-  const isDark = theme.text === '#FFFFFF' || theme.background === '#121212';
 
   return (
     <Modal
@@ -78,13 +79,25 @@ export function SideDrawer({ visible, onClose, title, children }: SideDrawerProp
             {
               width: DRAWER_WIDTH,
               transform: [{ translateX }],
-              backgroundColor: theme.backgroundElement || '#212225',
-              borderColor: theme.backgroundSelected || '#2E3135',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+              backgroundColor: 'transparent',
             },
           ]}
         >
+          {/* Glassmorphic Background Blur */}
+          <BlurView
+            intensity={90}
+            tint={isDark ? 'dark' : 'light'}
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                backgroundColor: isDark ? 'rgba(26, 27, 30, 0.65)' : 'rgba(255, 255, 255, 0.70)',
+              },
+            ]}
+          />
+
           {/* Header */}
-          <View style={[styles.header, { borderBottomColor: theme.backgroundSelected || '#2E3135' }]}>
+          <View style={[styles.header, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)' }]}>
             {title ? (
               <ThemedText style={styles.title} type="smallBold">
                 {title}
@@ -121,7 +134,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#000000',
   },
   pressableBackdrop: {
@@ -136,6 +149,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 24,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',

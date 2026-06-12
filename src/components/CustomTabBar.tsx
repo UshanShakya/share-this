@@ -176,14 +176,11 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
         },
       ]}
     >
-      {/* Rooms (Home) Tab */}
-      {renderTabButton('rooms', 'home', 'home-outline', 'Rooms', '#5B5BD6', '#7C7CF0', '#5B5BD618', '#7C7CF020')}
+      {/* Canvases Tab */}
+      {renderTabButton('rooms', 'color-palette', 'color-palette-outline', 'Canvases', '#5B5BD6', '#7C7CF0', '#5B5BD618', '#7C7CF020')}
 
       {/* Friends Tab */}
       {renderTabButton('friends', 'heart', 'heart-outline', 'Friends', '#E5484D', '#F16063', '#E5484D18', '#F1606320')}
-
-      {/* Create Tab */}
-      {renderTabButton('create', 'add-circle', 'add-circle-outline', 'Create', '#5B5BD6', '#7C7CF0', '#5B5BD618', '#7C7CF020')}
 
       {/* Settings Tab */}
       {renderTabButton('settings', 'settings', 'settings-outline', 'Settings', '#ED6C02', '#FF9800', '#ED6C0218', '#FF980020')}

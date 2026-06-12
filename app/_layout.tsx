@@ -1,12 +1,39 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { ActivityIndicator, View, StyleSheet, useColorScheme, Alert } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, useColorScheme, Alert, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
+import * as SplashScreen from 'expo-splash-screen';
+
+let Notifications: any = null;
+try {
+  Notifications = require('expo-notifications');
+} catch (err) {
+  console.warn('[Notifications] Failed to load expo-notifications in this environment:', err);
+}
+
 import { useAuthStore } from '../src/store/authStore';
 import { supabase } from '../src/lib/supabaseClient';
+import { sharedStorage } from '../src/lib/sharedStorage';
 import { Colors } from '../src/constants/Colors';
 import { useAlertStore } from '../src/store/alertStore';
 import { GlassAlert } from '../src/components/GlassAlert';
+import { KnoodleSplashScreen } from '../src/components/KnoodleSplashScreen';
+
+// Keep the native splash screen visible while the React Native JS bundle is loading
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Configure notification behavior for when the app is in the foreground
+if (Notifications) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 // Patch native Alert.alert globally with our custom beautiful glassy alert dialog
 Alert.alert = (title: string, message?: string, buttons?: any[]) => {
@@ -33,16 +60,47 @@ function AuthGuard() {
   return null;
 }
 
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme === 'light' ? 'light' : 'dark'];
   const { setSession, setProfile, setLoading, isLoading } = useAuthStore();
+  const [splashAnimationComplete, setSplashAnimationComplete] = useState(false);
 
   useEffect(() => {
+    // Hide the native splash screen as soon as the JS app mounts
+    SplashScreen.hideAsync().catch(() => {});
+
+    // Request system notification permissions
+    const requestNotificationPermissions = async () => {
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        
+        if (finalStatus === 'granted' && Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#D4537E',
+          });
+        }
+      } catch (err) {
+        console.warn('[RootLayout] Error configuring notification channel:', err);
+      }
+    };
+    requestNotificationPermissions();
+
     const bootstrapAuth = async () => {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         setSession(currentSession);
+        sharedStorage.syncAuth(currentSession?.access_token || null);
 
         if (currentSession?.user) {
           const { data: profileData, error: profileErr } = await supabase
@@ -69,6 +127,7 @@ export default function RootLayout() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       setSession(currentSession);
+      sharedStorage.syncAuth(currentSession?.access_token || null);
       
       if (currentSession?.user) {
         try {
@@ -133,7 +192,10 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {!splashAnimationComplete && (
+        <KnoodleSplashScreen onAnimationComplete={() => setSplashAnimationComplete(true)} />
+      )}
       <AuthGuard />
       {isLoading ? (
         <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -143,7 +205,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }} />
       )}
       <GlassAlert />
-    </>
+    </GestureHandlerRootView>
   );
 }
 

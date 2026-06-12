@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120">
+  <rect width="480" height="120" rx="16" fill="#0f0f0f"/>
+  <path d="M18 84 C18 53 38 35 56 44 C74 53 74 72 92 63 C110 53 110 28 92 19 C74 10 56 22 56 44 C56 66 74 78 92 69"
+    fill="none" stroke="#D4537E" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="18" cy="84" r="9" fill="#7F77DD"/>
+  <circle cx="92" cy="69" r="9" fill="#EF9F27"/>
+  <text x="112" y="78" font-family="Georgia, serif" font-size="64" font-weight="500" letter-spacing="-2" fill="#ffffff">kn</text>
+  <text x="226" y="78" font-family="Georgia, serif" font-size="64" font-weight="500" letter-spacing="-2" fill="#F06292">oo</text>
+  <text x="332" y="78" font-family="Georgia, serif" font-size="64" font-weight="500" letter-spacing="-2" fill="#ffffff">dle</text>
+</svg>

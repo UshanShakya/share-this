@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { Point, Stroke, ToolType } from '../types/canvas';
+import { sharedStorage } from '../lib/sharedStorage';
 
 interface CanvasState {
   strokes: Stroke[];
   remoteActiveStrokes: Record<string, { points: Point[]; color: string; width: number; tool: ToolType }>;
-  currentStroke: Point[] | null;
   activeColor: string;
   activeWidth: number;
   activeTool: ToolType;
@@ -13,9 +13,6 @@ interface CanvasState {
   // Actions
   setStrokes: (strokes: Stroke[]) => void;
   addStroke: (stroke: Stroke) => void;
-  startLocalStroke: (point: Point) => void;
-  updateLocalStroke: (point: Point) => void;
-  endLocalStroke: (id: string, userId: string, roomId: string) => Stroke | null;
   
   setRemoteActiveStroke: (userId: string, points: Point[], color: string, width: number, tool: ToolType) => void;
   clearRemoteActiveStroke: (userId: string) => void;
@@ -32,7 +29,6 @@ interface CanvasState {
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   strokes: [],
   remoteActiveStrokes: {},
-  currentStroke: null,
   activeColor: '#7C7CF0',
   activeWidth: 4,
   activeTool: 'brush',
@@ -43,41 +39,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   addStroke: (stroke) => set((state) => ({
     strokes: [...state.strokes, stroke],
   })),
-
-  startLocalStroke: (point) => set({
-    currentStroke: [point],
-  }),
-
-  updateLocalStroke: (point) => set((state) => {
-    if (!state.currentStroke) return {};
-    return {
-      currentStroke: [...state.currentStroke, point],
-    };
-  }),
-
-  endLocalStroke: (id, userId, roomId) => {
-    const { currentStroke, activeColor, activeWidth, activeTool } = get();
-    if (!currentStroke || currentStroke.length === 0) return null;
-
-    const finalColor = activeTool === 'eraser' ? 'eraser' : activeColor;
-
-    const stroke: Stroke = {
-      id,
-      userId,
-      roomId,
-      points: currentStroke,
-      color: finalColor,
-      width: activeWidth,
-      timestamp: Date.now(),
-    };
-
-    set((state) => ({
-      strokes: [...state.strokes, stroke],
-      currentStroke: null,
-    }));
-
-    return stroke;
-  },
 
   setRemoteActiveStroke: (userId, points, color, width, tool) => set((state) => ({
     remoteActiveStrokes: {
@@ -120,3 +81,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   clearStrokes: () => set({ strokes: [], remoteActiveStrokes: {} }),
 }));
+
+let lastStrokes = useCanvasStore.getState().strokes;
+useCanvasStore.subscribe((state) => {
+  if (state.strokes !== lastStrokes) {
+    lastStrokes = state.strokes;
+    sharedStorage.reloadWidget();
+  }
+});

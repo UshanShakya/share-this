@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { Room, RoomState, RoomInvite } from '../types/room';
 import { useNotificationStore } from './notificationStore';
 import { useAuthStore } from './authStore';
+import { sharedStorage } from '../lib/sharedStorage';
 
 export const useRoomStore = create<RoomState>((set, get) => ({
   rooms: [],
@@ -12,8 +13,14 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  setActiveRoom: (room) => set({ activeRoom: room }),
-  clearActiveRoom: () => set({ activeRoom: null, activeRoomMembers: [] }),
+  setActiveRoom: (room) => {
+    set({ activeRoom: room });
+    sharedStorage.syncActiveRoom(room?.id || null);
+  },
+  clearActiveRoom: () => {
+    set({ activeRoom: null, activeRoomMembers: [] });
+    sharedStorage.syncActiveRoom(null);
+  },
 
   fetchRooms: async () => {
     set({ isLoading: true, error: null });
@@ -41,6 +48,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       });
 
       set({ rooms: mappedRooms });
+      sharedStorage.syncRooms(mappedRooms);
     } catch (err: any) {
       set({ error: err.message || 'Failed to fetch rooms.' });
     } finally {
@@ -180,10 +188,15 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       const newRoom = data as Room;
       
       // Update local store state
-      set((state) => ({
-        rooms: [newRoom, ...state.rooms],
-        activeRoom: newRoom,
-      }));
+      set((state) => {
+        const updatedRooms = [newRoom, ...state.rooms];
+        sharedStorage.syncRooms(updatedRooms);
+        sharedStorage.syncActiveRoom(newRoom.id);
+        return {
+          rooms: updatedRooms,
+          activeRoom: newRoom,
+        };
+      });
 
       return newRoom;
     } catch (err: any) {
@@ -290,10 +303,18 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       if (error) throw error;
 
       // Remove the room from local state lists
-      set((state) => ({
-        rooms: state.rooms.filter((r) => r.id !== roomId),
-        activeRoom: state.activeRoom?.id === roomId ? null : state.activeRoom,
-      }));
+      set((state) => {
+        const updatedRooms = state.rooms.filter((r) => r.id !== roomId);
+        sharedStorage.syncRooms(updatedRooms);
+        const nextActiveRoom = state.activeRoom?.id === roomId ? null : state.activeRoom;
+        if (state.activeRoom?.id === roomId) {
+          sharedStorage.syncActiveRoom(null);
+        }
+        return {
+          rooms: updatedRooms,
+          activeRoom: nextActiveRoom,
+        };
+      });
 
       return { success: true };
     } catch (err: any) {
@@ -311,10 +332,18 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       if (error) throw error;
 
       // Remove the room from local state lists
-      set((state) => ({
-        rooms: state.rooms.filter((r) => r.id !== roomId),
-        activeRoom: state.activeRoom?.id === roomId ? null : state.activeRoom,
-      }));
+      set((state) => {
+        const updatedRooms = state.rooms.filter((r) => r.id !== roomId);
+        sharedStorage.syncRooms(updatedRooms);
+        const nextActiveRoom = state.activeRoom?.id === roomId ? null : state.activeRoom;
+        if (state.activeRoom?.id === roomId) {
+          sharedStorage.syncActiveRoom(null);
+        }
+        return {
+          rooms: updatedRooms,
+          activeRoom: nextActiveRoom,
+        };
+      });
 
       return { success: true };
     } catch (err: any) {

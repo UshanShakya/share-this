@@ -1,0 +1,7 @@
+{
+  "name": "shared-group",
+  "version": "1.0.0",
+  "description": "Exposes iOS App Group container path",
+  "main": "index.ts",
+  "types": "index.ts"
+}

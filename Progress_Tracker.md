@@ -53,6 +53,13 @@
 - [x] **3.14** Add `AvatarStack.tsx` showing online members via Supabase Presence
 - [x] **3.15** Handle offline gracefully — queue strokes locally, save to DB in async background promises
 - [x] **3.16** Performance pass — touch moving coordinates distance-threshold (2px) filtering to reduce event payload sizes
+- [x] **3.17** Refactor Undo/Redo system into a unified command execution architecture supporting batching, move object, and edit text
+- [x] **3.18** Implement geometric segment splitting (pixel eraser) to slice lines on drag intersection
+- [x] **3.19** Integrate Redo button control into `StrokeToolbar` and link with command history stack
+- [x] **3.20** Resolve Reanimated `.value` component render warning and TextInput crash by refactoring `<ActiveTextInput>` into a standard static layout
+- [x] **3.21** Capture scale/pan snapshots on touch event to drive static rendering coordinates, resolving invisible text and focus issues
+- [x] **3.22** Implement a dynamic floating Zoom Indicator on the side of the page (driven on the UI thread via `useAnimatedProps`)
+- [x] **3.23** Add tool-change auto-commit and dismissal logic to automatically save and unmount text drafts when switching tools
 
 ---
 
@@ -69,18 +76,18 @@ _Nothing currently in progress._
 
 ### Phase 4 — Home-Screen Widget
 
-- [ ] **4.1** Research and install `expo-widgets` (or evaluate bare workflow ejection)
-- [ ] **4.2** Create `src/lib/snapshotWriter.ts` — render Skia canvas to PNG
-- [ ] **4.3** Create `useSnapshot.ts` hook — debounced snapshot on canvas change
-- [ ] **4.4** Configure iOS App Group in Xcode for shared file container
-- [ ] **4.5** Write `widget/ios/CanvasWidget.swift` — SwiftUI view reading snapshot PNG
-- [ ] **4.6** Write `widget/ios/WidgetBundle.swift` — register widget target
-- [ ] **4.7** Configure Android shared file path (internal storage or FileProvider)
-- [ ] **4.8** Write `widget/android/CanvasWidget.kt` — Glance composable
-- [ ] **4.9** Write `widget/android/WidgetReceiver.kt` — handles update broadcasts
-- [ ] **4.10** Deep link from widget tap → correct room canvas in app
-- [ ] **4.11** Widget size options (small 2×2, medium 4×2) with appropriate crop/scale
-- [ ] **4.12** Test widget refresh rate and battery impact; tune snapshot interval
+- [x] **4.1** Research and install `expo-widgets` (using native targets and custom plugins config instead)
+- [x] **4.2** Create `src/lib/snapshotWriter.ts` (N/A - dynamically rendering vector strokes in native widgets instead of static PNG)
+- [x] **4.3** Create `useSnapshot.ts` hook (N/A - dynamically rendering vector strokes in native widgets instead of static PNG)
+- [x] **4.4** Configure iOS App Group in Xcode for shared file container
+- [x] **4.5** Write `widget/ios/CanvasWidget.swift` — SwiftUI view rendering vector strokes
+- [x] **4.6** Write `widget/ios/WidgetBundle.swift` — register widget target
+- [x] **4.7** Configure Android shared file path (using filesDir for shared storage)
+- [x] **4.8** Write `widget/android/CanvasWidget.kt` (N/A - implemented RemoteViews AppWidget for compilation stability and performance)
+- [x] **4.9** Write `widget/android/WidgetReceiver.kt` — handles update broadcasts and native vector rendering
+- [x] **4.10** Deep link from widget tap → correct room canvas in app
+- [x] **4.11** Widget size options (small 2×2, medium 4×2) with appropriate scale
+- [x] **4.12** Test widget refresh rate and battery impact; manual sync button provided for instant updates
 
 ---
 

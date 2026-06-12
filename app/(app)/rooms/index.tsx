@@ -23,6 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Spacing } from '@/constants/theme';
 import { Room, RoomInvite } from '@/types/room';
 import { useNotificationStore } from '@/store/notificationStore';
+import { SwipeableNotificationItem } from '@/components/ui/SwipeableNotificationItem';
 
 export default function RoomsScreen() {
   const theme = useTheme();
@@ -53,6 +54,7 @@ export default function RoomsScreen() {
 
   // State for Notifications sheet
   const [showNotifications, setShowNotifications] = useState(false);
+  const [dismissingIds, setDismissingIds] = useState<string[]>([]);
 
   const currentUserId = session?.user?.id;
 
@@ -61,9 +63,22 @@ export default function RoomsScreen() {
     unreadCount,
     fetchNotifications,
     markAsRead,
-    markAllAsRead,
+    deleteNotification,
     subscribeNotifications,
   } = useNotificationStore();
+
+  const handleMarkAllAsRead = () => {
+    const unread = notifications.filter((n) => !n.is_read);
+    if (unread.length === 0) return;
+
+    unread.forEach((item, index) => {
+      setTimeout(() => {
+        setDismissingIds((prev) => [...prev, item.id]);
+      }, index * 120);
+    });
+  };
+
+  const unreadNotifications = notifications.filter((n) => !n.is_read);
 
   const handleFetchRooms = useCallback(async () => {
     await Promise.all([fetchRooms(), fetchRoomInvites(), fetchNotifications()]);
@@ -260,7 +275,10 @@ export default function RoomsScreen() {
           </ThemedText>
         </View>
         <Pressable
-          onPress={() => setShowNotifications(true)}
+          onPress={() => {
+            setDismissingIds([]);
+            setShowNotifications(true);
+          }}
           style={({ pressed }) => [
             styles.bellButton,
             {
@@ -337,68 +355,68 @@ export default function RoomsScreen() {
           </Pressable>
         </View>
       ) : activeTab === 'active' ? (
-        rooms.length === 0 ? (
-          <View style={styles.centerContainer}>
-            <View style={[styles.emptyIconContainer, { backgroundColor: theme.backgroundSelected || '#2E3135' }]}>
-              <Ionicons name="color-palette-outline" size={48} color="#7C7CF0" />
-            </View>
-            <ThemedText style={styles.emptyTitle} type="smallBold">
-              No rooms yet
-            </ThemedText>
-            <ThemedText style={styles.emptySubtitle} type="code">
-              Tap the + button to create a new collaborative canvas room or ask a friend for a link.
-            </ThemedText>
-            <Pressable
-              style={[styles.createButton, { backgroundColor: '#7C7CF0' }]}
-              onPress={() => router.push('/rooms/new')}
-            >
-              <Ionicons name="add" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
-                Create Canvas
+        <FlatList
+          data={rooms}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[styles.listContainer, rooms.length === 0 && { flexGrow: 1, justifyContent: 'center' }]}
+          renderItem={({ item }) => (
+            <RoomCard
+              room={item}
+              currentUserId={currentUserId}
+              onPress={() => handleOpenRoom(item.id)}
+              onOptionsPress={() => handleOpenOptions(item)}
+            />
+          )}
+          ListEmptyComponent={
+            <View style={styles.centerContainer}>
+              <View style={[styles.emptyIconContainer, { backgroundColor: theme.backgroundSelected || '#2E3135' }]}>
+                <Ionicons name="color-palette-outline" size={48} color="#7C7CF0" />
+              </View>
+              <ThemedText style={styles.emptyTitle} type="smallBold">
+                No rooms yet
               </ThemedText>
-            </Pressable>
-          </View>
-        ) : (
-          <FlatList
-            data={rooms}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContainer}
-            renderItem={({ item }) => (
-              <RoomCard
-                room={item}
-                currentUserId={currentUserId}
-                onPress={() => handleOpenRoom(item.id)}
-                onOptionsPress={() => handleOpenOptions(item)}
-              />
-            )}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="#7C7CF0"
-                colors={['#7C7CF0']}
-              />
-            }
-          />
-        )
-      ) : roomInvites.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <View style={[styles.emptyIconContainer, { backgroundColor: theme.backgroundSelected || '#2E3135' }]}>
-            <Ionicons name="mail-outline" size={48} color="#7C7CF0" />
-          </View>
-          <ThemedText style={styles.emptyTitle} type="smallBold">
-            No invites yet
-          </ThemedText>
-          <ThemedText style={styles.emptySubtitle} type="code">
-            Canvas collaboration invites from your friends will appear here.
-          </ThemedText>
-        </View>
+              <ThemedText style={styles.emptySubtitle} type="code">
+                Tap the + button to create a new collaborative canvas room or ask a friend for a link.
+              </ThemedText>
+              <Pressable
+                style={[styles.createButton, { backgroundColor: '#7C7CF0' }]}
+                onPress={() => router.push('/rooms/new')}
+              >
+                <Ionicons name="add" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
+                  Create Canvas
+                </ThemedText>
+              </Pressable>
+            </View>
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#7C7CF0"
+              colors={['#7C7CF0']}
+            />
+          }
+        />
       ) : (
         <FlatList
           data={roomInvites}
           keyExtractor={(item) => item.room_id}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={[styles.listContainer, roomInvites.length === 0 && { flexGrow: 1, justifyContent: 'center' }]}
           renderItem={renderInviteItem}
+          ListEmptyComponent={
+            <View style={styles.centerContainer}>
+              <View style={[styles.emptyIconContainer, { backgroundColor: theme.backgroundSelected || '#2E3135' }]}>
+                <Ionicons name="mail-outline" size={48} color="#7C7CF0" />
+              </View>
+              <ThemedText style={styles.emptyTitle} type="smallBold">
+                No invites yet
+              </ThemedText>
+              <ThemedText style={styles.emptySubtitle} type="code">
+                Canvas collaboration invites from your friends will appear here.
+              </ThemedText>
+            </View>
+          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -502,13 +520,16 @@ export default function RoomsScreen() {
       {/* Notifications Side Drawer */}
       <SideDrawer
         visible={showNotifications}
-        onClose={() => setShowNotifications(false)}
+        onClose={() => {
+          setShowNotifications(false);
+          setDismissingIds([]);
+        }}
         title="Notifications"
       >
         <View style={styles.notificationsContainer}>
-          {notifications.length > 0 && (
+          {unreadNotifications.length > 0 && (
             <Pressable
-              onPress={markAllAsRead}
+              onPress={handleMarkAllAsRead}
               style={({ pressed }) => [
                 styles.markAllReadBtn,
                 { opacity: pressed ? 0.8 : 1 },
@@ -520,7 +541,7 @@ export default function RoomsScreen() {
             </Pressable>
           )}
 
-          {notifications.length === 0 ? (
+          {unreadNotifications.length === 0 ? (
             <View style={styles.noNotifications}>
               <Ionicons name="notifications-off-outline" size={36} color={theme.textSecondary || '#B0B4BA'} style={{ marginBottom: 8 }} />
               <ThemedText style={styles.noNotificationsText} type="code">
@@ -529,7 +550,7 @@ export default function RoomsScreen() {
             </View>
           ) : (
             <FlatList
-              data={notifications}
+              data={unreadNotifications}
               keyExtractor={(item) => item.id}
               style={styles.notificationsScroll}
               renderItem={({ item }) => {
@@ -538,38 +559,48 @@ export default function RoomsScreen() {
                   item.type === 'room_invite' ? 'mail-open-outline' :
                   'color-palette-outline';
                 
+                const isDismissed = dismissingIds.includes(item.id);
+
                 return (
-                  <Pressable
-                    onPress={() => handleNotificationPress(item)}
-                    style={({ pressed }) => [
-                      styles.notificationItem,
-                      {
-                        backgroundColor: pressed 
-                          ? theme.backgroundSelected || '#2E3135' 
-                          : item.is_read 
-                          ? 'transparent' 
-                          : 'rgba(124, 124, 240, 0.05)',
-                        borderBottomColor: theme.backgroundSelected || '#2E3135',
-                      },
-                    ]}
+                  <SwipeableNotificationItem
+                    id={item.id}
+                    dismissTriggered={isDismissed}
+                    onDismiss={() => {
+                      if (isDismissed) {
+                        markAsRead(item.id);
+                      } else {
+                        deleteNotification(item.id);
+                      }
+                    }}
                   >
-                    <View style={[styles.notificationIcon, { backgroundColor: item.is_read ? 'rgba(120, 120, 120, 0.1)' : 'rgba(124, 124, 240, 0.15)' }]}>
-                      <Ionicons name={iconName} size={16} color={item.is_read ? theme.textSecondary || '#B0B4BA' : '#7C7CF0'} />
-                    </View>
-                    <View style={styles.notificationContent}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <ThemedText style={[styles.notificationTitle, !item.is_read && { fontWeight: '700' }]} type="smallBold">
-                          {item.title}
-                        </ThemedText>
-                        {!item.is_read && (
-                          <View style={styles.unreadDot} />
-                        )}
+                    <Pressable
+                      onPress={() => handleNotificationPress(item)}
+                      style={({ pressed }) => [
+                        styles.notificationItem,
+                        {
+                          backgroundColor: pressed 
+                            ? theme.backgroundSelected || '#2E3135' 
+                            : 'rgba(124, 124, 240, 0.05)',
+                          borderBottomColor: theme.backgroundSelected || '#2E3135',
+                        },
+                      ]}
+                    >
+                      <View style={[styles.notificationIcon, { backgroundColor: 'rgba(124, 124, 240, 0.15)' }]}>
+                        <Ionicons name={iconName} size={16} color="#7C7CF0" />
                       </View>
-                      <ThemedText style={styles.notificationMessage} type="code">
-                        {item.message}
-                      </ThemedText>
-                    </View>
-                  </Pressable>
+                      <View style={styles.notificationContent}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <ThemedText style={[styles.notificationTitle, { fontWeight: '700' }]} type="smallBold">
+                            {item.title}
+                          </ThemedText>
+                          <View style={styles.unreadDot} />
+                        </View>
+                        <ThemedText style={styles.notificationMessage} type="code">
+                          {item.message}
+                        </ThemedText>
+                      </View>
+                    </Pressable>
+                  </SwipeableNotificationItem>
                 );
               }}
             />
@@ -588,6 +619,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.four,
     paddingBottom: Spacing.two,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     fontSize: 28,
@@ -657,7 +691,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: Spacing.four,
+    bottom: 104, // Lifted above the custom tab bar container
     right: Spacing.four,
     width: 60,
     height: 60,

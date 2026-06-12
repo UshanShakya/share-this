@@ -1,23 +1,27 @@
 export const Colors = {
   light: {
-    background: '#FFFFFF',
-    surface: '#F5F5F5',
-    elevated: '#EBEBEB',
-    text: '#111111',
-    textSecondary: '#666666',
-    accent: '#5B5BD6',
+    background: '#fafaf9',      // Paper background
+    surface: '#FBEAF0',         // Blush surface
+    elevated: '#F5D3DE',        // Blush-darker elevated
+    text: '#1a1a1a',            // Canvas text dark
+    textSecondary: '#888888',
+    accent: '#D4537E',          // Knot pink accent
     destructive: '#E5484D',
-    border: '#E0E0E0',
+    border: '#EEEEEE',
+    loopPurple: '#7F77DD',
+    endAmber: '#EF9F27',
   },
   dark: {
-    background: '#111111',
-    surface: '#1E1E1E',
+    background: '#0f0f0f',      // Canvas dark background
+    surface: '#1A1A1A',
     elevated: '#2A2A2A',
-    text: '#F5F5F5',
-    textSecondary: '#999999',
-    accent: '#7C7CF0',
+    text: '#FFFFFF',
+    textSecondary: '#888888',
+    accent: '#D4537E',          // Knot pink accent
     destructive: '#F16063',
     border: '#333333',
+    loopPurple: '#7F77DD',
+    endAmber: '#EF9F27',
   },
 } as const;
 

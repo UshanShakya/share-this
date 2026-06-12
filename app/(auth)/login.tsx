@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/hooks/useAuth';
 import { Colors } from '../../src/constants/Colors';
+import { KnoodleIcon, KnoodleWordmark } from '../../src/components/KnoodleBrand';
 
 export default function LoginScreen() {
   const colorScheme = useColorScheme();
@@ -80,8 +81,11 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          <View style={{ marginBottom: 16 }}>
+            <KnoodleIcon size={80} theme="transparent" />
+          </View>
+          <KnoodleWordmark width={180} height={45} theme={colorScheme === 'dark' ? 'dark' : 'light'} />
+          <Text style={[styles.subtitle, { color: colors.textSecondary, marginTop: 12 }]}>
             Log in to continue drawing with friends
           </Text>
         </View>

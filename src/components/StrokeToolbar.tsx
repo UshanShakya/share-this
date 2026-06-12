@@ -13,6 +13,7 @@ interface StrokeToolbarProps {
   setTool: (tool: 'brush' | 'eraser' | 'text' | 'pan') => void;
   setEraserMode: (mode: 'pixel' | 'object') => void;
   undo: () => void;
+  redo: () => void;
   clear: () => void;
 }
 
@@ -35,6 +36,7 @@ export function StrokeToolbar({
   setTool,
   setEraserMode,
   undo,
+  redo,
   clear,
 }: StrokeToolbarProps) {
   const scheme = useColorScheme();
@@ -273,10 +275,14 @@ export function StrokeToolbar({
           </View>
         </View>
 
-        {/* 4. Canvas Actions (Undo / Clear) */}
+        {/* 4. Canvas Actions (Undo / Redo / Clear) */}
         <View style={styles.actionsSection}>
           <TouchableOpacity style={styles.actionButton} onPress={undo}>
             <Ionicons name="arrow-undo-outline" size={20} color={colors.text} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton} onPress={redo}>
+            <Ionicons name="arrow-redo-outline" size={20} color={colors.text} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton} onPress={clear}>
